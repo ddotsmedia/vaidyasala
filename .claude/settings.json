@@ -1,6 +1,5 @@
 {
   "permissions": {
-    "defaultMode": "bypassPermissions",
     "deny": [
       "Bash(ssh:*)",
       "Bash(scp:*)",
@@ -8,6 +7,10 @@
       "Bash(rm -rf /:*)",
       "Read(.env)",
       "Read(.env.*)"
+    ],
+    "defaultMode": "bypassPermissions",
+    "allow": [
+      "Bash(node -e ' *)"
     ]
   }
 }

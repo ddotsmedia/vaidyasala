@@ -8,7 +8,9 @@ export function slugifyMl(input: string): string {
   return input
     .trim()
     .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s-]/gu, "")
+    // Keep letters, numbers, and combining marks (Malayalam vowel signs / virama
+    // are \p{M}, not \p{L} — stripping them would mangle the script).
+    .replace(/[^\p{L}\p{N}\p{M}\s-]/gu, "")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");

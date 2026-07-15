@@ -1,0 +1,19 @@
+{
+  "ci": {
+    "collect": {
+      "startServerCommand": "pnpm --filter @vaidyasala/web start",
+      "url": ["http://localhost:3000/", "http://localhost:3000/styleguide"],
+      "numberOfRuns": 1,
+      "settings": { "preset": "desktop" }
+    },
+    "assert": {
+      "assertions": {
+        "categories:performance": ["warn", { "minScore": 0.95 }],
+        "largest-contentful-paint": ["warn", { "maxNumericValue": 1800 }],
+        "cumulative-layout-shift": ["warn", { "maxNumericValue": 0.05 }],
+        "total-byte-weight": ["warn", { "maxNumericValue": 1000000 }]
+      }
+    },
+    "upload": { "target": "temporary-public-storage" }
+  }
+}
