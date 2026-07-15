@@ -9,3 +9,5 @@ Autopilot decisions log (LAW 1). Format: `- [date] [choice] because [reason]`.
 - [2026-07-15] typedRoutes disabled until Phase 3B because the nav/footer reference public routes (/topics, /latest, ...) that do not exist until Phase 3; re-enable when those pages land.
 - [2026-07-15] Fonts loaded via next/font/google (Inter latin, Anek Malayalam malayalam+latin, Noto Serif Malayalam malayalam preload=false) instead of self-hosted WOFF2 because next/font auto-subsets, preloads, and emits size-adjusted fallback metrics (zero CLS) per §5.3.
 - [2026-07-15] Tier-1 primitives hand-written on Radix + cmdk + sonner (not shadcn CLI) because the CLI cannot scaffold non-interactively into a workspace package; styled with @theme tokens.
+- [2026-07-15] AI model tiers: workhorse=claude-sonnet-5, cheap=claude-haiku-4-5 (per §8.1 Sonnet/Haiku split, mapped to current model IDs via the claude-api reference).
+- [2026-07-15] Structured AI output uses a manual completeJson(Zod + 2-retry repair) loop with providers accepting injected clients/fetch, rather than output_config.format, so the whole chain is unit-testable with mocked providers and makes zero real API calls in CI.

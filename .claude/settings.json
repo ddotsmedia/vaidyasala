@@ -1,5 +1,17 @@
 {
   "permissions": {
+    "allow": [
+      "Bash(node -e ' *)",
+      "Bash(gh run *)",
+      "Bash(where gh *)",
+      "Read(//c/Program Files/GitHub CLI/**)",
+      "Bash(powershell.exe -NoProfile -Command \"\\(Get-Command gh -ErrorAction SilentlyContinue\\).Source\")",
+      "Bash(curl -s \"https://api.github.com/repos/ddotsmedia/vaidyasala/actions/runs?per_page=4\")",
+      "Bash(curl -s \"https://api.github.com/repos/ddotsmedia/vaidyasala/actions/runs?per_page=4\" -o /tmp/runs.json)",
+      "Skill(claude-api)",
+      "Skill(claude-api:*)",
+      "Bash(pnpm --filter @vaidyasala/core typecheck)"
+    ],
     "deny": [
       "Bash(ssh:*)",
       "Bash(scp:*)",
@@ -8,9 +20,6 @@
       "Read(.env)",
       "Read(.env.*)"
     ],
-    "defaultMode": "bypassPermissions",
-    "allow": [
-      "Bash(node -e ' *)"
-    ]
+    "defaultMode": "bypassPermissions"
   }
 }
