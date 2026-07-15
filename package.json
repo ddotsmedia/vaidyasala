@@ -1,0 +1,18 @@
+{
+  "name": "vaidyasala",
+  "private": true,
+  "version": "0.0.0",
+  "packageManager": "pnpm@9.0.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "db:migrate": "pnpm --filter @vaidyasala/db migrate",
+    "db:seed": "pnpm --filter @vaidyasala/db seed"
+  }
+}

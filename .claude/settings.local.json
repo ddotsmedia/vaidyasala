@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git --version)",
+      "Bash(gh --version)",
+      "Bash(pnpm --version)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git -c user.name=ddotsmedia -c user.email=mammikutty@al-watan.ae commit -m 'chore: repo kickoff *)"
+    ]
+  }
+}
