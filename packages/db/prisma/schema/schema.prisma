@@ -1,0 +1,51 @@
+// Multi-file Prisma schema (§2). Postgres 17 + pgvector.
+// Domain files: content.prisma, discovery.prisma, engagement.prisma,
+// ops.prisma, auth.prisma (Better Auth-owned tables).
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions", "prismaSchemaFolder"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
+}
+
+// ───────────────────────── ENUMS ─────────────────────────
+
+enum VideoStatus {
+  INGESTING
+  PROCESSING
+  DRAFT
+  PUBLISHED
+  HIDDEN
+}
+
+enum ArticleStatus {
+  DRAFT
+  PUBLISHED
+  HIDDEN
+}
+
+enum TopicKind {
+  CONDITION
+  TREATMENT
+  LIFESTYLE
+  HERB
+  GENERAL
+}
+
+enum Role {
+  VIEWER
+  EDITOR
+  ADMIN
+}
+
+enum CommentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SPAM
+}

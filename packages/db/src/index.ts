@@ -1,11 +1,17 @@
-/**
- * Typed Prisma client, exported once for web + worker. The full multi-file
- * schema (content/discovery/engagement/ops/auth) and the generated client land
- * in Phase 1B; until `prisma generate` has run this module intentionally holds
- * only the connection helper shape.
- */
+import { PrismaClient } from "@prisma/client";
 
-// BLOCKED: @prisma/client is not generated until Phase 1B runs `prisma migrate`
-// against the dev compose Postgres. Consumers should import `prisma` from here
-// once 1B lands.
-export const DB_PACKAGE = "@vaidyasala/db" as const;
+/**
+ * Typed Prisma client, instantiated once per process and reused across hot
+ * reloads in dev. Import `prisma` from here in web (server) and worker code.
+ */
+const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
+
+export const prisma: PrismaClient =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
+  });
+
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+
+export * from "@prisma/client";

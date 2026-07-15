@@ -1,0 +1,70 @@
+// ───────────────────────── OPERATIONS (§2) ─────────────────────────
+
+model Job {
+  id        String   @id @default(cuid())
+  kind      String
+  videoId   String?
+  status    String
+  attempts  Int      @default(0)
+  error     String?  @db.Text
+  costUsd   Decimal? @db.Decimal(10, 4)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, kind])
+  @@index([videoId])
+}
+
+model Redirect {
+  from      String   @id
+  to        String
+  code      Int      @default(301)
+  createdAt DateTime @default(now())
+}
+
+model SiteHealthIssue {
+  id        String   @id @default(cuid())
+  path      String
+  kind      String
+  detail    Json
+  resolved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([resolved, kind])
+}
+
+model SearchQueryLog {
+  id             String   @id @default(cuid())
+  query          String
+  script         String
+  results        Int
+  clickedVideoId String?
+  createdAt      DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([results])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String
+  action    String
+  target    String
+  meta      Json
+  createdAt DateTime @default(now())
+
+  @@index([actorId, createdAt])
+}
+
+model SeoSnapshot {
+  id          String   @id @default(cuid())
+  path        String
+  date        DateTime @db.Date
+  impressions Int
+  clicks      Int
+  position    Float
+  cwv         Json?
+  createdAt   DateTime @default(now())
+
+  @@unique([path, date])
+}

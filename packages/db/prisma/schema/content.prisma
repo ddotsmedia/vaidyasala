@@ -1,0 +1,122 @@
+// ───────────────────────── CONTENT CORE (§2) ─────────────────────────
+
+model Video {
+  id             String       @id @default(cuid())
+  youtubeId      String       @unique
+  slug           String       @unique
+  status         VideoStatus  @default(INGESTING)
+  titleMl        String
+  titleEn        String?
+  description    String?      @db.Text
+  durationSec    Int
+  publishedAt    DateTime?
+  ytPublishedAt  DateTime
+  thumbnails     Json
+  stats          Json
+  primaryTopicId String?
+  primaryTopic   Topic?       @relation("primary", fields: [primaryTopicId], references: [id])
+  topics         TopicVideo[]
+  chapters       Chapter[]
+  transcript     Transcript?
+  enrichment     Enrichment?
+  article        Article?
+  faqs           Faq[]
+  keywords       Keyword[]
+  playlistItems  PlaylistItem[]
+  relatedFrom    RelatedEdge[] @relation("from")
+  relatedTo      RelatedEdge[] @relation("to")
+  qualityScore   Float?
+  embedding      Unsupported("vector(1024)")?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([status, publishedAt(sort: Desc)])
+  @@index([primaryTopicId])
+}
+
+model Chapter {
+  id        String   @id @default(cuid())
+  videoId   String
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  startSec  Int
+  titleMl   String
+  titleEn   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([videoId, startSec])
+}
+
+model Transcript {
+  id           String   @id @default(cuid())
+  videoId      String   @unique
+  video        Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  rawMl        String   @db.Text
+  correctedMl  String?  @db.Text
+  english      String?  @db.Text
+  segments     Json
+  asrProvider  String
+  qualityScore Float?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model TranscriptSegmentVector {
+  id        String @id @default(cuid())
+  videoId   String
+  startSec  Int
+  endSec    Int
+  textMl    String @db.Text
+  embedding Unsupported("vector(1024)")
+  createdAt DateTime @default(now())
+
+  @@index([videoId])
+}
+
+model Enrichment {
+  id             String   @id @default(cuid())
+  videoId        String   @unique
+  video          Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  summaryMl      String?  @db.Text
+  summaryEn      String?  @db.Text
+  keyTakeaways   Json
+  socialSnippets Json
+  newsletterMd   String?  @db.Text
+  seoTitle       String?
+  seoDescription String?
+  modelVersion   String
+  generatedAt    DateTime
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Article {
+  id         String        @id @default(cuid())
+  videoId    String?       @unique
+  video      Video?        @relation(fields: [videoId], references: [id])
+  slug       String        @unique
+  status     ArticleStatus @default(DRAFT)
+  titleMl    String
+  bodyMl     String        @db.Text
+  bodyEn     String?       @db.Text
+  readingMin Int
+  embedding  Unsupported("vector(1024)")?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@index([status])
+}
+
+model Faq {
+  id           String   @id @default(cuid())
+  videoId      String
+  video        Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  questionMl   String
+  answerMl     String   @db.Text
+  questionEn   String?
+  answerEn     String?  @db.Text
+  timestampSec Int?
+  order        Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}

@@ -1,0 +1,95 @@
+// ───────────────────────── DISCOVERY GRAPH (§2) ─────────────────────────
+
+model Topic {
+  id             String       @id @default(cuid())
+  slug           String       @unique
+  nameMl         String
+  nameEn         String
+  kind           TopicKind
+  heroVideoId    String?
+  descriptionMl  String?      @db.Text
+  synonyms       Json
+  videos         TopicVideo[]
+  primaryFor     Video[]      @relation("primary")
+  parentId       String?
+  ayurconnectUrl String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([kind])
+  @@index([parentId])
+}
+
+model TopicVideo {
+  topicId   String
+  topic     Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  videoId   String
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  score     Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([topicId, videoId])
+  @@index([videoId])
+}
+
+model RelatedEdge {
+  fromId    String
+  from      Video    @relation("from", fields: [fromId], references: [id], onDelete: Cascade)
+  toId      String
+  to        Video    @relation("to", fields: [toId], references: [id], onDelete: Cascade)
+  score     Float
+  reason    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([fromId, toId])
+  @@index([fromId, score(sort: Desc)])
+  @@index([toId])
+}
+
+model Keyword {
+  id        String   @id @default(cuid())
+  videoId   String
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  termMl    String
+  termEn    String?
+  kind      String
+  createdAt DateTime @default(now())
+
+  @@index([videoId])
+}
+
+model SynonymMapping {
+  id        String   @id @default(cuid())
+  variant   String   @unique
+  canonical String
+  source    String
+  approved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([approved])
+}
+
+model Playlist {
+  id                String         @id @default(cuid())
+  slug              String         @unique
+  youtubePlaylistId String?        @unique
+  titleMl           String
+  items             PlaylistItem[]
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+}
+
+model PlaylistItem {
+  playlistId String
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  videoId    String
+  video      Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  order      Int
+  createdAt  DateTime @default(now())
+
+  @@id([playlistId, videoId])
+  @@index([videoId])
+}

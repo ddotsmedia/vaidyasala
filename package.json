@@ -15,10 +15,13 @@
     "test": "turbo run test",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
-    "db:migrate": "pnpm --filter @vaidyasala/db migrate",
-    "db:seed": "pnpm --filter @vaidyasala/db seed"
+    "db:generate": "pnpm --filter @vaidyasala/db generate",
+    "db:migrate": "dotenv -e .env -- pnpm --filter @vaidyasala/db migrate",
+    "db:migrate:dev": "dotenv -e .env -- pnpm --filter @vaidyasala/db migrate:dev",
+    "db:seed": "dotenv -e .env -- pnpm --filter @vaidyasala/db seed"
   },
   "devDependencies": {
+    "dotenv-cli": "^7.4.4",
     "prettier": "^3.3.3",
     "turbo": "^2.3.0"
   }

@@ -1,0 +1,74 @@
+// ───────────────────────── USERS & ENGAGEMENT (§2) ─────────────────────────
+// Better Auth owns User/Session/Account/Verification/TwoFactor (see auth.prisma).
+
+model Profile {
+  id              String   @id // = Better Auth user id
+  role            Role     @default(VIEWER)
+  langPref        String   @default("ml")
+  newsletterOptIn Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([role])
+}
+
+model WatchProgress {
+  id          String   @id @default(cuid())
+  viewerKey   String // "u:{userId}" | "a:{anonId}"
+  userId      String?
+  videoId     String
+  positionSec Int
+  completed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([viewerKey, videoId])
+  @@index([updatedAt])
+  @@index([userId])
+}
+
+model AnalyticsEvent {
+  id        BigInt   @id @default(autoincrement())
+  name      String
+  viewerKey String?
+  videoId   String?
+  props     Json
+  createdAt DateTime @default(now())
+
+  @@index([name, createdAt])
+  @@index([videoId])
+}
+
+model Comment {
+  id        String        @id @default(cuid())
+  videoId   String
+  userId    String
+  body      String        @db.Text
+  status    CommentStatus @default(PENDING)
+  parentId  String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([videoId, status])
+  @@index([status])
+}
+
+model NewsletterSubscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  status    String   @default("pending")
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model NewsletterIssue {
+  id        String    @id @default(cuid())
+  subjectMl String
+  bodyMd    String    @db.Text
+  status    String    @default("draft")
+  sentAt    DateTime?
+  stats     Json?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
