@@ -6,3 +6,6 @@ Autopilot decisions log (LAW 1). Format: `- [date] [choice] because [reason]`.
 - [2026-07-15] Dev compose host ports set to 55432/56379/57700 (pg/redis/meili) because 6379 and likely 5432 were already allocated on the local machine; bound to 127.0.0.1 only.
 - [2026-07-15] Workspace packages consumed as TypeScript source (exports point at ./src, web transpilePackages, worker via tsx/tsc) instead of a per-package build step because it removes build ordering complexity for an internal monorepo.
 - [2026-07-15] ioredis pinned via pnpm-workspace overrides + BullMQ given plain ConnectionOptions (not a shared Redis instance) because bullmq bundled a second ioredis version causing type-identity conflicts.
+- [2026-07-15] typedRoutes disabled until Phase 3B because the nav/footer reference public routes (/topics, /latest, ...) that do not exist until Phase 3; re-enable when those pages land.
+- [2026-07-15] Fonts loaded via next/font/google (Inter latin, Anek Malayalam malayalam+latin, Noto Serif Malayalam malayalam preload=false) instead of self-hosted WOFF2 because next/font auto-subsets, preloads, and emits size-adjusted fallback metrics (zero CLS) per §5.3.
+- [2026-07-15] Tier-1 primitives hand-written on Radix + cmdk + sonner (not shadcn CLI) because the CLI cannot scaffold non-interactively into a workspace package; styled with @theme tokens.

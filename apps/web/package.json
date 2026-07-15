@@ -14,6 +14,7 @@
     "@vaidyasala/core": "workspace:*",
     "@vaidyasala/db": "workspace:*",
     "@vaidyasala/ui": "workspace:*",
+    "lucide-react": "^0.454.0",
     "next": "^16.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

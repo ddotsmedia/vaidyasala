@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import { Toaster } from "@vaidyasala/ui";
+import { fontVariables } from "@/lib/fonts";
+import { ThemeScript } from "@/components/shell/theme-switcher";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -15,8 +18,14 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ml" suppressHydrationWarning>
-      <body className="min-h-dvh antialiased">{children}</body>
+    <html lang="ml" className={fontVariables} suppressHydrationWarning>
+      <head>
+        <ThemeScript />
+      </head>
+      <body className="min-h-dvh antialiased">
+        {children}
+        <Toaster />
+      </body>
     </html>
   );
 }

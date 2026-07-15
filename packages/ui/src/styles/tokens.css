@@ -1,5 +1,117 @@
 /*
- * Design tokens (§5.2). The full @theme token set — dark default, light via
- * [data-theme=light], high-contrast mapping, Malayalam typography — lands in
- * Phase 1C. Kept as an importable entry so apps can wire it now.
+ * Vaidyasala design tokens (§5.2). Dark-first. Light + high-contrast are
+ * re-maps under [data-theme=...]. Both default themes target AAA 7:1 body
+ * contrast (§5.5). Font family vars are populated by next/font in apps/web.
  */
+
+@theme {
+  /* Color — dark first */
+  --color-bg: oklch(0.14 0.01 80);
+  --color-surface: oklch(0.19 0.01 80);
+  --color-surface-2: oklch(0.24 0.01 80);
+  --color-text: oklch(0.95 0.005 80);
+  --color-text-dim: oklch(0.7 0.01 80);
+  --color-border: oklch(0.28 0.01 80);
+  --color-brand: oklch(0.62 0.15 145);
+  --color-brand-warm: oklch(0.75 0.12 75);
+  --color-cta: oklch(0.58 0.22 27);
+  --color-cta-fg: oklch(0.98 0.01 27);
+  --color-focus: oklch(0.7 0.15 145);
+
+  /* Typography — families filled by next/font (--font-sans-src etc.) */
+  --font-sans: var(--font-sans-src, "Inter Variable"), system-ui, sans-serif;
+  --font-ml: var(--font-ml-src, "Anek Malayalam Variable"), "Noto Sans Malayalam", sans-serif;
+  --font-serif-ml: var(--font-serif-ml-src, "Noto Serif Malayalam"), serif;
+
+  /* Type scale — 1.250 ratio */
+  --text-xs: 0.8rem;
+  --text-sm: 0.9rem;
+  --text-base: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.563rem;
+  --text-2xl: 1.953rem;
+  --text-3xl: 2.441rem;
+  --text-4xl: 3.052rem;
+  --text-5xl: 3.815rem;
+  --leading-ml: 1.75;
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+
+  /* Elevation — 3 subtle steps */
+  --shadow-1: 0 1px 2px oklch(0 0 0 / 0.3);
+  --shadow-2: 0 4px 12px oklch(0 0 0 / 0.35);
+  --shadow-3: 0 12px 32px oklch(0 0 0 / 0.45);
+
+  /* Motion */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 150ms;
+  --dur-base: 250ms;
+  --dur-slow: 400ms;
+}
+
+/* Light theme — same tokens re-mapped */
+[data-theme="light"] {
+  --color-bg: oklch(0.98 0.005 80);
+  --color-surface: oklch(0.95 0.006 80);
+  --color-surface-2: oklch(0.91 0.008 80);
+  --color-text: oklch(0.2 0.01 80);
+  --color-text-dim: oklch(0.42 0.01 80);
+  --color-border: oklch(0.85 0.01 80);
+  --color-brand: oklch(0.52 0.15 145);
+  --color-cta: oklch(0.53 0.22 27);
+  --color-focus: oklch(0.55 0.15 145);
+}
+
+/* High-contrast theme — pure black/white, no dim text (§5.5) */
+[data-theme="hc"] {
+  --color-bg: oklch(0 0 0);
+  --color-surface: oklch(0.08 0 0);
+  --color-surface-2: oklch(0.14 0 0);
+  --color-text: oklch(1 0 0);
+  --color-text-dim: oklch(1 0 0);
+  --color-border: oklch(1 0 0);
+  --color-brand: oklch(0.85 0.18 145);
+  --color-cta: oklch(0.7 0.24 27);
+  --color-focus: oklch(1 0 0);
+}
+
+/* Base element defaults */
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+}
+
+/* Malayalam typography (§5.3): taller line-height, never letter-spaced */
+.font-ml,
+[lang="ml"] {
+  font-family: var(--font-ml);
+  line-height: var(--leading-ml);
+  letter-spacing: normal;
+}
+
+.reading-ml {
+  font-family: var(--font-serif-ml);
+  line-height: 1.8;
+}
+
+/* Focus visibility always (§5.5) */
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* Reduced motion collapses everything to a quick opacity fade (§5.4) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 150ms !important;
+    scroll-behavior: auto !important;
+  }
+}

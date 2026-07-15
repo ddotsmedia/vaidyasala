@@ -9,7 +9,10 @@
       "Bash(git -c user.name=ddotsmedia -c user.email=mammikutty@al-watan.ae commit -m 'chore: repo kickoff *)",
       "Bash(git remote *)",
       "Bash(git push *)",
-      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('C:/web/Vaidyasala/.claude/settings.json','utf8'\\)\\); console.log\\('valid JSON ✓'\\)\")"
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('C:/web/Vaidyasala/.claude/settings.json','utf8'\\)\\); console.log\\('valid JSON ✓'\\)\")",
+      "Bash(pnpm --filter @vaidyasala/ui typecheck)",
+      "Bash(pnpm --filter @vaidyasala/ui lint)",
+      "Bash(pnpm --filter @vaidyasala/web typecheck)"
     ]
   }
 }
