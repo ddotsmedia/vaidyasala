@@ -85,3 +85,21 @@ Environment/host/domain values: docs/VARIABLES.md. Never hardcode them.
   `vaidyasala-*`, network `vaidyasala-net`, volumes `vaidyasala_*` — zero chance
   of colliding with existing projects.
 - Backups write only to /opt/vaidyasala/backups + R2. Never touch other backup dirs.
+
+## LAW 7 — RUN AUTOPILOT (execute the phase pipeline end-to-end)
+- "RUN AUTOPILOT" = execute docs/PHASES.md phases IN ORDER, starting at the "Next step"
+  recorded in docs/PROGRESS.md, without pausing for the human between phases or steps.
+- For each phase block: read ONLY the §sections its header names (LAW 2), do every
+  numbered task, satisfy its EXIT CHECKS (fix failures, don't just report them — LAW 4),
+  commit per numbered step (LAW 3), then advance to the next block automatically.
+- At every phase boundary overwrite docs/PROGRESS.md (current phase, done ✓ list, next
+  step, blockers) and commit before starting the next phase.
+- Resolve all ambiguity via LAW 1's order; log autopilot choices to docs/DECISIONS.md.
+- A blocked step (missing secret/dependency) is stubbed behind `// BLOCKED:`, listed in
+  PROGRESS.md blockers, and does NOT halt the run — continue with everything else (LAW 1).
+- STOP the autopilot run only at: (a) the end of Phase 6, OR (b) the start of Phase 7,
+  which is a human-gated SHARED-VPS deploy governed by LAW 6 and must never run except
+  from an explicit deploy prompt. On reaching either boundary, write PROGRESS.md and the
+  terse final report, then finish.
+- The run is idempotent and resumable: re-invoking RUN AUTOPILOT continues from
+  PROGRESS.md's "Next step" without redoing committed work.

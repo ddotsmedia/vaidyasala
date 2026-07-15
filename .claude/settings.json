@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "defaultMode": "bypassPermissions",
+    "deny": [
+      "Bash(ssh:*)",
+      "Bash(scp:*)",
+      "Bash(format:*)",
+      "Bash(rm -rf /:*)",
+      "Read(.env)",
+      "Read(.env.*)"
+    ]
+  }
+}
