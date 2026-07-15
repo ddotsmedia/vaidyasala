@@ -1,0 +1,5 @@
+/*
+ * Design tokens (§5.2). The full @theme token set — dark default, light via
+ * [data-theme=light], high-contrast mapping, Malayalam typography — lands in
+ * Phase 1C. Kept as an importable entry so apps can wire it now.
+ */

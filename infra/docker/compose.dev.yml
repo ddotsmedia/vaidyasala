@@ -1,0 +1,72 @@
+name: vaidyasala-dev
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: vaidyasala-dev-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-vaidyasala}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vaidyasala}
+      POSTGRES_DB: ${POSTGRES_DB:-vaidyasala}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - vaidyasala-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vaidyasala} -d ${POSTGRES_DB:-vaidyasala}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: vaidyasala-dev-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redisdata:/data
+    networks:
+      - vaidyasala-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.11
+    container_name: vaidyasala-dev-meili
+    restart: unless-stopped
+    environment:
+      MEILI_ENV: development
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-devMasterKeyChangeMe0000000000000000}
+      MEILI_NO_ANALYTICS: "true"
+    ports:
+      - "127.0.0.1:${MEILI_PORT:-7700}:7700"
+    volumes:
+      - meilidata:/meili_data
+    networks:
+      - vaidyasala-net
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:7700/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+networks:
+  vaidyasala-net:
+    name: vaidyasala-dev-net
+    driver: bridge
+
+volumes:
+  pgdata:
+    name: vaidyasala_dev_pgdata
+  redisdata:
+    name: vaidyasala_dev_redisdata
+  meilidata:
+    name: vaidyasala_dev_meilidata

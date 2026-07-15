@@ -1,0 +1,21 @@
+{
+  "name": "@vaidyasala/config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./eslint": "./eslint/base.js",
+    "./eslint/next": "./eslint/next.js",
+    "./tsconfig/base": "./tsconfig/base.json",
+    "./tsconfig/node": "./tsconfig/node.json",
+    "./tsconfig/nextjs": "./tsconfig/nextjs.json",
+    "./tailwind": "./tailwind/preset.css"
+  },
+  "files": ["eslint", "tsconfig", "tailwind"],
+  "devDependencies": {
+    "@eslint/js": "^9.13.0",
+    "eslint": "^9.13.0",
+    "typescript-eslint": "^8.11.0",
+    "eslint-config-prettier": "^9.1.0"
+  }
+}

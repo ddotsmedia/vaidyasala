@@ -1,0 +1,9 @@
+{
+  "extends": "@vaidyasala/config/tsconfig/node",
+  "compilerOptions": {
+    "noEmit": true,
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": ["src"]
+}

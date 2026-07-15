@@ -1,0 +1,15 @@
+@import "tailwindcss";
+@import "@vaidyasala/ui/styles";
+
+/*
+ * App-level base. The full design-system @theme (dark default, light/high-
+ * contrast, Malayalam typography with line-height >=1.7) is layered in Phase 1C
+ * via @vaidyasala/ui tokens.
+ */
+:root {
+  color-scheme: dark;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}

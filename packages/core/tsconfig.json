@@ -1,0 +1,9 @@
+{
+  "extends": "@vaidyasala/config/tsconfig/base",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"],
+    "lib": ["ES2023"]
+  },
+  "include": ["src", "vitest.config.ts"]
+}

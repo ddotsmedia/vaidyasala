@@ -1,0 +1,6 @@
+/*
+ * Shared Tailwind v4 preset. Design tokens (@theme) live in packages/ui (§5.2)
+ * and are layered on top of this import in each app's globals.css. This file
+ * only pulls in the Tailwind engine so every surface shares one entry point.
+ */
+@import "tailwindcss";
