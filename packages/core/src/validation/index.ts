@@ -14,8 +14,23 @@ export type CursorPage = z.infer<typeof cursorPageSchema>;
 /** Funnel analytics event ingest (§13 POST /api/v1/events). */
 export const analyticsEventSchema = z.object({
   name: z.string().min(1).max(64),
+  videoId: z.string().max(64).optional(),
   props: z.record(z.string(), z.unknown()).optional(),
 });
 export type AnalyticsEventInput = z.infer<typeof analyticsEventSchema>;
+
+/** Canonical funnel event names (§6.1 money flow). */
+export const FUNNEL_EVENTS = {
+  play: "play",
+  progress25: "progress_25",
+  progress50: "progress_50",
+  progress75: "progress_75",
+  complete: "complete",
+  chainPlay: "chain_play",
+  chapterSeek: "chapter_seek",
+  subscribeClick: "subscribe_click",
+  share: "share",
+} as const;
+export type FunnelEvent = (typeof FUNNEL_EVENTS)[keyof typeof FUNNEL_EVENTS];
 
 export * from "./ai";

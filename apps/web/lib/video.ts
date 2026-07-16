@@ -1,0 +1,159 @@
+import "server-only";
+import { prisma } from "@vaidyasala/db";
+import { transcriptSegmentSchema, type TranscriptSegment } from "@vaidyasala/core/validation";
+import type { VideoCardData } from "@vaidyasala/ui";
+
+export interface Takeaway {
+  ml: string;
+  en?: string;
+}
+
+export interface WatchChapter {
+  startSec: number;
+  titleMl: string;
+  titleEn?: string | null;
+}
+export interface WatchFaq {
+  id: string;
+  questionMl: string;
+  answerMl: string;
+  timestampSec: number | null;
+}
+
+export interface WatchData {
+  id: string;
+  youtubeId: string;
+  slug: string;
+  titleMl: string;
+  titleEn: string | null;
+  thumbnailUrl: string;
+  durationSec: number;
+  publishedAt: string | null;
+  channelUrl: string;
+  subscriberCount?: number;
+  topic: { slug: string; nameMl: string } | null;
+  summaryMl: string | null;
+  summaryEn: string | null;
+  takeaways: Takeaway[];
+  segments: TranscriptSegment[];
+  chapters: WatchChapter[];
+  faqs: WatchFaq[];
+  related: (VideoCardData & { watchHref: string })[];
+}
+
+/** Best thumbnail URL from the Video.thumbnails Json (ingest or seed shape). */
+export function thumbnailUrl(
+  youtubeId: string,
+  thumbnails: unknown,
+): string {
+  const t = thumbnails as Record<string, unknown> | null;
+  if (t) {
+    for (const key of ["maxres", "standard", "high", "hq", "default"]) {
+      const v = t[key];
+      if (typeof v === "string") return v;
+      if (v && typeof v === "object" && typeof (v as { url?: string }).url === "string") {
+        return (v as { url: string }).url;
+      }
+    }
+  }
+  return `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`;
+}
+
+function channelUrl(): string {
+  const id = process.env.YOUTUBE_CHANNEL_ID;
+  return id
+    ? `https://www.youtube.com/channel/${id}?sub_confirmation=1`
+    : "https://www.youtube.com/@vaidyasala?sub_confirmation=1";
+}
+
+/** Published video + everything the watch page renders. Null if not found/published. */
+export async function getVideoBySlug(slug: string): Promise<WatchData | null> {
+  const video = await prisma.video.findFirst({
+    where: { slug, status: "PUBLISHED" },
+    include: {
+      primaryTopic: { select: { slug: true, nameMl: true } },
+      transcript: { select: { segments: true } },
+      enrichment: { select: { summaryMl: true, summaryEn: true, keyTakeaways: true } },
+      chapters: { orderBy: { startSec: "asc" } },
+      faqs: { orderBy: { order: "asc" } },
+      relatedFrom: {
+        orderBy: { score: "desc" },
+        take: 12,
+        include: {
+          to: {
+            select: {
+              slug: true,
+              titleMl: true,
+              titleEn: true,
+              youtubeId: true,
+              durationSec: true,
+              thumbnails: true,
+              primaryTopic: { select: { slug: true, nameMl: true, nameEn: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+  if (!video) return null;
+
+  const segments = transcriptSegmentSchema
+    .array()
+    .safeParse(video.transcript?.segments ?? []);
+
+  const stats = video.stats as { subscribers?: number } | null;
+
+  return {
+    id: video.id,
+    youtubeId: video.youtubeId,
+    slug: video.slug,
+    titleMl: video.titleMl,
+    titleEn: video.titleEn,
+    thumbnailUrl: thumbnailUrl(video.youtubeId, video.thumbnails),
+    durationSec: video.durationSec,
+    publishedAt: video.publishedAt?.toISOString() ?? null,
+    channelUrl: channelUrl(),
+    subscriberCount: stats?.subscribers,
+    topic: video.primaryTopic,
+    summaryMl: video.enrichment?.summaryMl ?? null,
+    summaryEn: video.enrichment?.summaryEn ?? null,
+    takeaways: ((video.enrichment?.keyTakeaways as Takeaway[] | null) ?? []).filter((t) => t.ml),
+    segments: segments.success ? segments.data : [],
+    chapters: video.chapters.map((c) => ({
+      startSec: c.startSec,
+      titleMl: c.titleMl,
+      titleEn: c.titleEn,
+    })),
+    faqs: video.faqs.map((f) => ({
+      id: f.id,
+      questionMl: f.questionMl,
+      answerMl: f.answerMl,
+      timestampSec: f.timestampSec,
+    })),
+    related: video.relatedFrom.map((e) => ({
+      slug: e.to.slug,
+      titleMl: e.to.titleMl,
+      titleEn: e.to.titleEn ?? undefined,
+      thumbnailUrl: thumbnailUrl(e.to.youtubeId, e.to.thumbnails),
+      durationSec: e.to.durationSec,
+      topic: e.to.primaryTopic
+        ? {
+            slug: e.to.primaryTopic.slug,
+            nameMl: e.to.primaryTopic.nameMl,
+            nameEn: e.to.primaryTopic.nameEn,
+          }
+        : undefined,
+      watchHref: `/watch/${e.to.slug}`,
+    })),
+  };
+}
+
+/** Published slugs for ISR prerender + sitemap (Phase 3C). */
+export async function publishedSlugs(limit = 500): Promise<string[]> {
+  const rows = await prisma.video.findMany({
+    where: { status: "PUBLISHED" },
+    select: { slug: true },
+    take: limit,
+  });
+  return rows.map((r) => r.slug);
+}
