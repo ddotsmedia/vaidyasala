@@ -8,7 +8,8 @@
     "./ai": "./src/ai/index.ts",
     "./search": "./src/search/index.ts",
     "./content": "./src/content/index.ts",
-    "./validation": "./src/validation/index.ts"
+    "./validation": "./src/validation/index.ts",
+    "./queue": "./src/queue/index.ts"
   },
   "scripts": {
     "lint": "eslint .",
