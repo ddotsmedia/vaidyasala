@@ -14,6 +14,8 @@ import {
 } from "./queues/flow";
 import { registerCron } from "./cron";
 import { runMirrored } from "./lib/process";
+import { createPipelineDepsFromEnv } from "./pipeline/deps";
+import { registerPipelineStages } from "./pipeline/register";
 import { createStorageFromEnv } from "./storage/s3";
 import { createMetadataFetcher } from "./youtube/metadata";
 import { createAudioExtractor } from "./youtube/audio";
@@ -46,6 +48,9 @@ async function main(): Promise<void> {
       }`,
   );
   await Promise.all(Object.values(queues).map((q) => q.waitUntilReady()));
+
+  // Register the §8.2 pipeline stages first, so ingest enqueues the flow (2C).
+  registerPipelineStages(createPipelineDepsFromEnv(log));
 
   const storage = createStorageFromEnv();
   const ingest = createIngestProcessor({
