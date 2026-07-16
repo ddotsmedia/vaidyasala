@@ -10,12 +10,14 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "e2e": "playwright test",
-    "e2e:install": "playwright install --with-deps chromium"
+    "e2e:install": "playwright install --with-deps chromium",
+    "admin:create": "tsx scripts/create-admin.ts"
   },
   "dependencies": {
     "@vaidyasala/core": "workspace:*",
     "@vaidyasala/db": "workspace:*",
     "@vaidyasala/ui": "workspace:*",
+    "better-auth": "~1.2.7",
     "bullmq": "^5.28.1",
     "ioredis": "^5.4.1",
     "lucide-react": "^0.454.0",
@@ -35,6 +37,7 @@
     "eslint": "^9.13.0",
     "eslint-config-next": "^16.0.0",
     "tailwindcss": "^4.0.0",
+    "tsx": "^4.19.2",
     "typescript": "^5.6.3"
   }
 }
