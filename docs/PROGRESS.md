@@ -1,28 +1,36 @@
 # PROGRESS — Vaidyasala
 
 ## Current phase
-Phase 2 — Ingest & AI Pipeline (2A ✓ · next 2B)
+Phase 2 — Ingest & AI Pipeline (2A ✓ · 2B ✓ · next 2C)
 
 ## Done
-- ✓ Phase 0 + preflight + Phase 1 (1A-1D) COMPLETE — CI green (run #1 success)
-  - monorepo (config/core/db/ui + web/worker), Prisma schema + pgvector/HNSW + seed,
-    design system + shell + /styleguide, CI/deploy workflows, vitest + playwright + lhci
-- ✓ 2A Core AI abstractions (§8.1/§8.2):
-  - packages/core/ai: AsrProvider/LlmProvider/EmbedProvider interfaces
-  - providers: claude.ts (Anthropic SDK, Sonnet-5 workhorse / Haiku-4.5 cheap),
-    sarvam.ts, whisper.ts, embed.ts (fetch-based, injectable for tests)
-  - TokenBucket rate limiter, CircuitBreaker, cost accounting, completeJson (Zod + 2-retry repair)
-  - packages/core/validation/ai.ts: Asr/Correction/Translation/ChapterSet/Enrichment/ArticleDraft schemas
-  - prompts/ (correct-ml, translate, chapterize, enrich, article) + glossary injection + hallucination rules
-  - 12 AI unit tests, all with mocked/injected providers — ZERO real API calls
-- ✓ Exit checks: vitest green (19 tests), typecheck ✓, lint ✓
+- ✓ Phase 0 + preflight + Phase 1 (1A-1D) — CI green
+- ✓ 2A Core AI abstractions (§8.1/§8.2): providers, validation schemas, prompts, repair loop, 12 tests
+- ✓ 2B Worker, queues, ingest (§9, §3, §2 Job):
+  - packages/core/queue: QUEUE_NAMES, PIPELINE_STAGES (§8.2 order), idempotencyKey,
+    parseYouTubeId, ingestInputSchema — shared contract for web + worker (9 tests)
+  - apps/worker: env (S3/YouTube/yt-dlp), S3-compatible StoragePort (R2/MinIO, auto-bucket),
+    YouTube metadata fetcher (Data API + yt-dlp keyless fallback), yt-dlp audio extractor,
+    Job-table mirror (runMirrored: active→done|failed), queues + JOB_OPTS (backoff ×5),
+    FlowProducer pipeline chain (leaf asr→root quality-gate), DLQ, cron schedulers
+    (15-min yt-poll + hourly stats-refresh), ingest/stats-refresh/yt-poll jobs (8 tests)
+  - apps/web: POST /api/webhooks/youtube (WebSub GET verify + POST HMAC), POST
+    /api/v1/admin/videos/ingest (Zod + RBAC stub) — both enqueue via lib/queue
+  - infra: compose.dev.yml scoped MinIO (127.0.0.1:59000); .env.example updated
+- ✓ Exit checks: typecheck ✓, lint ✓, tests green (36 total: core 28, worker 8);
+  storage path verified live against MinIO (put + auto-create bucket)
 
 ## Next step
-Phase 2B — apps/worker BullMQ flow (parent + children per §8.2), ingest.ts (YouTube Data API,
-thumbnails→R2, yt-dlp audio), Job-table mirroring, webhook + admin ingest endpoints, smoke one real URL.
+Phase 2C — AI chain jobs (asr, correct, translate, chapterize, enrich, article, embed,
+link, index-search, quality-gate, og-image) registered into the pipeline flow via
+registerPipelineStage(); resumable + idempotent; fixtures where keys absent (§8.2, §8.3).
 
 ## Blockers
-- AI/ASR keys (ANTHROPIC/SARVAM/WHISPER/EMBED) absent → providers throw at runtime; jobs run
-  against fixtures in 2C, live-run BLOCKED per LAW 1. Tests unaffected (injected fakes).
-- R2 creds absent → 2B decides MinIO local fallback vs BLOCKED, record in DECISIONS.
-- Dev host ports 55432/56379/57700. typedRoutes off until Phase 3B.
+- yt-dlp + ffmpeg not installed locally → audio extraction + yt-dlp metadata fallback
+  live-run BLOCKED; ingest verified via injected fakes (zero real calls).
+- YOUTUBE_API_KEY / YOUTUBE_CHANNEL_ID absent → Data API metadata/stats/poll live-run
+  BLOCKED (jobs no-op with clear BLOCKED logs).
+- Full live YouTube→ingest smoke BLOCKED (needs a metadata source: API key OR yt-dlp).
+  Storage half proven against MinIO. R2 prod creds absent → dev uses MinIO fallback.
+- AI/ASR keys (ANTHROPIC/SARVAM/EMBED) still absent → 2C runs on fixtures.
+- Dev host ports 55432/56379/57700/59000. typedRoutes off until Phase 3B.

@@ -58,6 +58,29 @@ services:
       timeout: 5s
       retries: 10
 
+  # S3-compatible object storage for dev (stands in for Cloudflare R2, §12).
+  # The worker auto-creates the media bucket on first upload (S3Storage.ensureBucket).
+  minio:
+    image: minio/minio:latest
+    container_name: vaidyasala-dev-minio
+    restart: unless-stopped
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID:-vaidyasala}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY:-vaidyasala}
+    ports:
+      - "127.0.0.1:${MINIO_PORT:-59000}:9000"
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-59001}:9001"
+    volumes:
+      - miniodata:/data
+    networks:
+      - vaidyasala-net
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
 networks:
   vaidyasala-net:
     name: vaidyasala-dev-net
@@ -70,3 +93,5 @@ volumes:
     name: vaidyasala_dev_redisdata
   meilidata:
     name: vaidyasala_dev_meilidata
+  miniodata:
+    name: vaidyasala_dev_miniodata
