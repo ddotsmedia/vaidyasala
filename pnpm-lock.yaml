@@ -41,6 +41,9 @@ importers:
       lucide-react:
         specifier: ^0.454.0
         version: 0.454.0(react@19.2.7)
+      motion:
+        specifier: ^11.11.17
+        version: 11.18.2(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       next:
         specifier: ^16.0.0
         version: 16.2.10(@babel/core@7.29.7)(@playwright/test@1.61.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
