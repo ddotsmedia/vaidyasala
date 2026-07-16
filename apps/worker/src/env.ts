@@ -26,6 +26,15 @@ const envSchema = z.object({
 
   // External binaries for audio extraction. Absent ⇒ audio step BLOCKED.
   YT_DLP_PATH: z.string().default("yt-dlp"),
+
+  // Meilisearch (index config in Phase 4). Absent master key ⇒ index-search skips.
+  MEILI_URL: z.string().url().default("http://localhost:57700"),
+  MEILI_MASTER_KEY: z.string().optional(),
+
+  // AI keys (Phase 2C). Absent ⇒ pipeline runs on fixtures, live BLOCKED (LAW 1).
+  ANTHROPIC_API_KEY: z.string().optional(),
+  SARVAM_API_KEY: z.string().optional(),
+  EMBED_API_KEY: z.string().optional(),
 });
 
 export const env = envSchema.parse(process.env);

@@ -17,6 +17,7 @@
     "@vaidyasala/db": "workspace:*",
     "bullmq": "^5.28.1",
     "ioredis": "^5.4.1",
+    "meilisearch": "^0.45.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
