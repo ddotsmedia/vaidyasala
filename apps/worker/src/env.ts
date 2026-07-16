@@ -2,13 +2,31 @@ import { z } from "zod";
 
 /** Worker runtime env, validated once at boot (LAW 4: every input crosses Zod). */
 const envSchema = z.object({
-  REDIS_URL: z.string().url().default("redis://localhost:6379"),
+  REDIS_URL: z.string().url().default("redis://localhost:56379"),
   DATABASE_URL: z.string().url().optional(),
   WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(32).default(4),
+
+  // Object storage (Cloudflare R2 in prod, MinIO in dev — S3-compatible, §12).
+  // Absent creds ⇒ storage disabled; ingest skips media upload and marks BLOCKED.
+  S3_ENDPOINT: z.string().url().optional(),
+  S3_REGION: z.string().default("auto"),
+  S3_ACCESS_KEY_ID: z.string().optional(),
+  S3_SECRET_ACCESS_KEY: z.string().optional(),
+  S3_BUCKET_MEDIA: z.string().default("vaidyasala-media"),
+  S3_FORCE_PATH_STYLE: z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((v) => v === "true"),
+  S3_PUBLIC_BASE_URL: z.string().url().optional(),
+
+  // YouTube Data API (metadata/stats/poll). Absent ⇒ yt-dlp metadata fallback
+  // (no key needed) for ingest; stats-refresh + poll cron are BLOCKED.
+  YOUTUBE_API_KEY: z.string().optional(),
+  YOUTUBE_CHANNEL_ID: z.string().optional(),
+
+  // External binaries for audio extraction. Absent ⇒ audio step BLOCKED.
+  YT_DLP_PATH: z.string().default("yt-dlp"),
 });
 
-export const env = envSchema.parse({
-  REDIS_URL: process.env.REDIS_URL,
-  DATABASE_URL: process.env.DATABASE_URL,
-  WORKER_CONCURRENCY: process.env.WORKER_CONCURRENCY,
-});
+export const env = envSchema.parse(process.env);
+export type WorkerEnv = z.infer<typeof envSchema>;

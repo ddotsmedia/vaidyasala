@@ -1,20 +1,32 @@
-import { Queue } from "bullmq";
+import { Queue, type JobsOptions } from "bullmq";
+import { QUEUE_NAMES, type QueueName } from "@vaidyasala/core/queue";
 import { connection } from "../redis";
 
-/**
- * Queue definitions. One flow per video (parent + child jobs per §8.2) is wired
- * in Phase 2B; here we declare the queue names so the skeleton boots cleanly.
- */
-export const QUEUE_NAMES = {
-  ingest: "vaidyasala.ingest",
-  pipeline: "vaidyasala.pipeline",
-  ops: "vaidyasala.ops",
-} as const;
+export { QUEUE_NAMES, type QueueName } from "@vaidyasala/core/queue";
 
-export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];
+/**
+ * Shared job options: exponential backoff ×5 (§2B), bounded retention. Failed
+ * jobs are retained for the admin QueueBoard + DLQ inspection.
+ */
+export const JOB_OPTS: JobsOptions = {
+  attempts: 5,
+  backoff: { type: "exponential", delay: 5000 },
+  removeOnComplete: { age: 60 * 60 * 24, count: 1000 },
+  removeOnFail: { age: 60 * 60 * 24 * 7 },
+};
 
 export const queues: Record<QueueName, Queue> = {
-  [QUEUE_NAMES.ingest]: new Queue(QUEUE_NAMES.ingest, { connection }),
-  [QUEUE_NAMES.pipeline]: new Queue(QUEUE_NAMES.pipeline, { connection }),
-  [QUEUE_NAMES.ops]: new Queue(QUEUE_NAMES.ops, { connection }),
+  [QUEUE_NAMES.ingest]: new Queue(QUEUE_NAMES.ingest, { connection, defaultJobOptions: JOB_OPTS }),
+  [QUEUE_NAMES.pipeline]: new Queue(QUEUE_NAMES.pipeline, {
+    connection,
+    defaultJobOptions: JOB_OPTS,
+  }),
+  [QUEUE_NAMES.ops]: new Queue(QUEUE_NAMES.ops, { connection, defaultJobOptions: JOB_OPTS }),
+  // Dead-letter queue: terminal failures are copied here for admin visibility.
+  [QUEUE_NAMES.dlq]: new Queue(QUEUE_NAMES.dlq, {
+    connection,
+    defaultJobOptions: { removeOnComplete: false, removeOnFail: false },
+  }),
 };
+
+export const dlq = queues[QUEUE_NAMES.dlq];
