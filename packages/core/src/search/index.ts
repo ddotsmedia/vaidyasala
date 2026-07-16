@@ -4,3 +4,9 @@
  */
 export const SEARCH_INDEXES = ["videos", "articles", "topics", "faqs"] as const;
 export type SearchIndex = (typeof SEARCH_INDEXES)[number];
+
+export {
+  buildVideoSearchDoc,
+  type VideoSearchDoc,
+  type VideoSearchSource,
+} from "./mapper";
