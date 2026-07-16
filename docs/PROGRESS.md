@@ -1,37 +1,35 @@
 # PROGRESS — Vaidyasala
 
 ## Current phase
-Phase 2 — Ingest & AI Pipeline (2A ✓ · 2B ✓ · 2C ✓ · next 2D)
+Phase 2 — Ingest & AI Pipeline COMPLETE (2A ✓ · 2B ✓ · 2C ✓ · 2D ✓) → next Phase 3A
 
 ## Done
-- ✓ Phase 0 + preflight + Phase 1 (1A-1D) — CI green
-- ✓ 2A Core AI abstractions (§8.1/§8.2): providers, validation schemas, prompts, repair loop
-- ✓ 2B Worker/queues/ingest: shared queue contract (core/queue), S3 storage (R2/MinIO),
-    YouTube metadata (Data API + yt-dlp fallback) + audio, Job mirror, FlowProducer chain,
-    DLQ, cron (yt-poll/stats-refresh), web webhook + admin ingest endpoints
-- ✓ 2C AI chain (§8.2 all 10 steps + og-image):
-  - core: search doc mapper (§14), chunkText/changedRatio/relatedScore helpers
-  - worker pgvector helpers (video + per-segment vectors, cosine NN), pipeline deps +
-    provider factory (injectable), Meili upsert port
-  - stages: asr, correct (chunked + >40% diff-guard), translate (segment-aligned),
-    chapterize (skip if YT chapters), enrich (Enrichment+Faq+Keyword), article (MDX +
-    claim→segment verify), embed, link (TopicVideo + RelatedEdge §2 formula), index-search
-    (mapper + guarded Meili upsert), quality-gate (composite → Video.qualityScore, →DRAFT),
-    og-image (SVG → storage). All idempotent + resumable (read/write DB).
-  - registerPipelineStages() wired into worker boot → ingest now enqueues the flow
-- ✓ Exit checks: typecheck ✓, lint ✓, unit tests green (core 37, worker 15 + 1 integration);
-    full-chain integration test ran green vs dev Postgres — Transcript/Enrichment/Article/
-    Chapters/segment-vectors/RelatedEdge + DRAFT all persisted (fixtures; live AI BLOCKED)
+- ✓ Phase 0 + Phase 1 (1A-1D) — CI green
+- ✓ 2A AI abstractions · 2B worker/queues/ingest · 2C AI chain (all §8.2 steps + og-image)
+- ✓ 2D Admin + Auth (§6.5, §13, §4 Tier-3, §10):
+  - Better Auth (email+password, Prisma adapter, Profile-create hook) + /api/auth/[...all]
+    + client; scripts/create-admin.ts (admin@vaidyasala.live seeded, password-hashed)
+  - authorize(minRole) single RBAC layer (lib/authz) used by admin pages + API routes;
+    ingest endpoint now EDITOR-gated (real session, stub removed)
+  - admin queue API: GET list + SSE stream (/queue/stream) + POST /:jobId/retry
+  - publish/hide server actions (status flip + AuditLog + updateTag fan-out stub §9.2)
+  - (admin) shell (noindex) + /login + dashboard (ingest form) + /admin/queue (live
+    QueueBoard SSE + retry) + /admin/videos (status-filter table) + /admin/videos/[id]
+    (transcript word-diff, enrichment cards, FAQs, chapters, article MDX preview, PUBLISH)
+- ✓ Exit checks: typecheck ✓, lint ✓, tests green (core 37, worker 15 + 1 integration),
+    web build ✓ (all admin routes compile), admin login created against dev DB.
+    Interactive browser login→publish e2e not run in this headless session (verified by
+    build + auth-stack-against-DB + typecheck; Playwright e2e lands with 3D).
 
 ## Next step
-Phase 2D — Better Auth + Profile/RBAC (authorize() §10), (admin) layout (noindex),
-/admin/queue (QueueBoard SSE + retry/DLQ), /admin/videos (+ [id] draft review:
-transcript diff, enrichment cards, article preview, PUBLISH → status flip + revalidateTag stub).
+Phase 3A — /watch/[slug]: ISR + revalidateTag('video:{id}'), hero + facade VideoPlayer
+(thumbnail→IFrame on interaction, play/25/50/75/complete events), SummaryCard, StickyPlayer,
+ChapterList, TranscriptView (virtualized, ML/EN), KeyTakeaways, FaqAccordion, RelatedRail,
+WatchNextCard, ShareSheet, SubscribeCTA@75%, AudioModeBar; POST /api/v1/events; keyboard (§5.5).
 
 ## Blockers
-- AI/ASR keys (ANTHROPIC/SARVAM/EMBED) absent → pipeline runs on fixtures; live-run BLOCKED.
-- yt-dlp + ffmpeg absent + no YOUTUBE_API_KEY → live YouTube ingest smoke BLOCKED (storage
-  half proven vs MinIO; AI chain proven vs dev DB with fixtures).
-- MEILI_MASTER_KEY not wired → index-search maps docs but skips upsert until Phase 4.
-- R2 prod creds absent → dev uses MinIO. Dev ports 55432/56379/57700/59000.
-- typedRoutes off until Phase 3B.
+- AI/ASR keys (ANTHROPIC/SARVAM/EMBED) absent → pipeline runs on fixtures; live BLOCKED.
+- yt-dlp/ffmpeg + YOUTUBE_API_KEY absent → live YouTube ingest smoke BLOCKED.
+- MEILI_MASTER_KEY unwired → index-search maps docs, skips upsert until Phase 4.
+- 2FA (twoFactor) deferred to Phase 6 (better-auth pinned ~1.2.x for zod3 compat).
+- R2 prod creds absent → dev MinIO. Dev ports 55432/56379/57700/59000. typedRoutes off till 3B.
