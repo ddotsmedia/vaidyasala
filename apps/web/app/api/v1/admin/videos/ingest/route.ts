@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { ingestInputSchema } from "@vaidyasala/core/queue";
-import { authorizeAdmin } from "@/lib/rbac";
+import { authorize } from "@/lib/authz";
 import { enqueueIngest } from "@/lib/queue";
 
 export const runtime = "nodejs";
@@ -8,12 +8,13 @@ export const dynamic = "force-dynamic";
 
 /**
  * POST /api/v1/admin/videos/ingest — manual/backfill ingest (§13, §9.1).
- * RBAC-stubbed (2D wires Better Auth); Zod-validated; enqueues an ingest job.
+ * RBAC: EDITOR+ (§10 authorize layer); Zod-validated; enqueues an ingest job.
  */
 export async function POST(req: Request): Promise<NextResponse> {
-  const authz = authorizeAdmin(req);
+  const authz = await authorize("EDITOR");
   if (!authz.ok) {
-    return NextResponse.json({ error: "forbidden", reason: authz.reason }, { status: 403 });
+    const status = authz.reason === "unauthenticated" ? 401 : 403;
+    return NextResponse.json({ error: authz.reason }, { status });
   }
 
   let json: unknown;

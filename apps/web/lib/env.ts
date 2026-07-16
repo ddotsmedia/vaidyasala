@@ -12,6 +12,10 @@ const envSchema = z.object({
 
   // RBAC stub for the admin ingest endpoint until Better Auth lands (2D).
   ADMIN_INGEST_TOKEN: z.string().optional(),
+
+  // Better Auth (§10). Dev default secret; MUST be overridden in prod.
+  BETTER_AUTH_SECRET: z.string().min(1).default("dev-only-insecure-secret-change-me"),
+  BETTER_AUTH_URL: z.string().url().default("http://localhost:3000"),
 });
 
 export const env = envSchema.parse({
@@ -21,4 +25,6 @@ export const env = envSchema.parse({
   WEBSUB_VERIFY_TOKEN: process.env.WEBSUB_VERIFY_TOKEN,
   WEBSUB_SECRET: process.env.WEBSUB_SECRET,
   ADMIN_INGEST_TOKEN: process.env.ADMIN_INGEST_TOKEN,
+  BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
+  BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
 });

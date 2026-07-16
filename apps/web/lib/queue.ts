@@ -1,7 +1,12 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import { Queue, type JobsOptions, type ConnectionOptions } from "bullmq";
-import { QUEUE_NAMES, idempotencyKey, type IngestJobData } from "@vaidyasala/core/queue";
+import {
+  QUEUE_NAMES,
+  PIPELINE_STAGES,
+  idempotencyKey,
+  type IngestJobData,
+} from "@vaidyasala/core/queue";
 import { prisma } from "@vaidyasala/db";
 import { env } from "./env";
 
@@ -23,12 +28,42 @@ const JOB_OPTS: JobsOptions = {
   backoff: { type: "exponential", delay: 5000 },
 };
 
-// One Queue per process, reused across hot reloads (dev).
-const globalForQueue = globalThis as unknown as { ingestQueue?: Queue };
-const ingestQueue =
-  globalForQueue.ingestQueue ??
-  new Queue(QUEUE_NAMES.ingest, { connection: connectionFromUrl(env.REDIS_URL) });
-if (process.env.NODE_ENV !== "production") globalForQueue.ingestQueue = ingestQueue;
+// One set of Queue handles per process, reused across hot reloads (dev).
+const globalForQueue = globalThis as unknown as { queues?: Record<string, Queue> };
+const connection = connectionFromUrl(env.REDIS_URL);
+const queues =
+  globalForQueue.queues ??
+  {
+    [QUEUE_NAMES.ingest]: new Queue(QUEUE_NAMES.ingest, { connection }),
+    [QUEUE_NAMES.pipeline]: new Queue(QUEUE_NAMES.pipeline, { connection }),
+    [QUEUE_NAMES.ops]: new Queue(QUEUE_NAMES.ops, { connection }),
+  };
+if (process.env.NODE_ENV !== "production") globalForQueue.queues = queues;
+const ingestQueue = queues[QUEUE_NAMES.ingest]!;
+
+const PIPELINE_SET = new Set<string>(PIPELINE_STAGES);
+/** Map a Job.kind (§2 mirror) to the BullMQ queue that owns it. */
+function queueForKind(kind: string): Queue | undefined {
+  if (kind === "ingest") return queues[QUEUE_NAMES.ingest];
+  if (PIPELINE_SET.has(kind)) return queues[QUEUE_NAMES.pipeline];
+  return queues[QUEUE_NAMES.ops];
+}
+
+/** Retry a failed job by its mirror id (= BullMQ jobId). Returns false if absent. */
+export async function retryJob(jobId: string, kind: string): Promise<boolean> {
+  const queue = queueForKind(kind);
+  if (!queue) return false;
+  const job = await queue.getJob(jobId);
+  if (!job) return false;
+  const state = await job.getState();
+  if (state === "failed") {
+    await job.retry();
+  } else {
+    await job.promote().catch(() => {});
+  }
+  await prisma.job.update({ where: { id: jobId }, data: { status: "queued", error: null } });
+  return true;
+}
 
 function contentHash(input: string): string {
   return createHash("sha1").update(input).digest("hex").slice(0, 12);
