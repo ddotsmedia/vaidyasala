@@ -1,32 +1,36 @@
 # PROGRESS — Vaidyasala
 
 ## Current phase
-Phase 3 — Public Core (3A ✓ · next 3B)
+Phase 3 — Public Core (3A ✓ · 3B ✓ · next 3C)
 
 ## Done
-- ✓ Phase 0-1 (foundation, CI) · Phase 2 (2A-2D: AI abstractions, worker/ingest, AI chain, admin+auth)
-- ✓ 3A Video page /watch/[slug] (§1.2, §6.1, §4 Tier-2, §5.4/5.5):
-  - lib/video getVideoBySlug (published + transcript/enrichment/chapters/faqs/related view-model);
-    ISR revalidate=300 + generateStaticParams(publishedSlugs); generateMetadata + canonical
-  - PlayerProvider context + YouTube IFrame loader + facade VideoPlayer (thumbnail→iframe on
-    interaction, emits play/25/50/75/complete); shared seek/playhead across components
-  - ChapterList (seek + active sync), TranscriptView (playhead sync, ML/EN, reading mode),
-    FaqAccordion (timestamp seek chips), KeyTakeaways, SummaryCard, StickyPlayer (dock bar,
-    spring §5.4), WatchNextCard (8s countdown → chain_play), SubscribeOverlay (@75%),
-    AudioModeBar (Web Speech ml-IN), ShareSheet (WhatsApp+UTM), RelatedRail
-  - keyboard controls §5.5 (space/←/→/↑/↓/m); POST /api/v1/events + anon viewerKey cookie
-- ✓ Exit checks: typecheck ✓, lint ✓, web build ✓ (/watch SSG-prerenders 5 seeded videos),
-    watch page 200 live, event write verified in DB (anon viewerKey). Chapter-seek/transcript-
-    sync are live-YouTube interactions (verified by build/construction; Playwright e2e in 3D).
+- ✓ Phase 0-1 (foundation, CI) · Phase 2 (2A-2D) · 3A Video page /watch/[slug]
+- ✓ 3B Home + hubs + articles + feeds (§1.1 order, §1.3, §6.1):
+  - Home (§1.1 order): Featured/Trending/Latest + Continue & Recommended Suspense
+    islands (§11 streamed), Popular topics, Latest articles, Subscribe, Newsletter
+  - lib/feeds (getFeatured/Trending[7d AnalyticsEvent]/Latest/PopularTopics/
+    LatestArticles); components/home (VideoGrid, LinkedRail, islands, NewsletterForm)
+  - /topics + /topics/[slug] (hub: hero, videos by TopicVideo.score, articles, FAQs,
+    playlists, AyurConnect x-link); /articles/[slug] (next-mdx-remote, source-video
+    card above fold); /playlists + /playlists/[slug]; /latest; /trending (7d window);
+    /subscribe; /newsletter; /about /privacy /terms trust pages
+  - Newsletter double opt-in via Resend (lib/newsletter, fixture mode if key absent) +
+    POST /api/v1/newsletter/subscribe & GET /confirm; validation schemas in core
+  - §1.3 publish-time inbound-link rule (≥3: relatedEdge + topicVideo + article) in
+    worker quality-gate; seed extended with playlists + articles
+  - typedRoutes re-enabled (next.config); Route typing on watch-next-card/video.ts
+- ✓ Exit checks: typecheck ✓, lint ✓, web build ✓ (all 3B routes SSG/static-prerender
+    from seed: home, /topics[/slug], /articles/[slug], /playlists[/slug], /latest,
+    /trending, /subscribe, trust pages; home streams islands).
 
 ## Next step
-Phase 3B — Home (§1.1 section order: Featured/Trending/Latest/Continue[island]/Recommended
-[island]/Popular topics/Latest articles/Subscribe/Newsletter), /topics + /topics/[slug],
-/articles/[slug] (MDX), /playlists/[slug], /latest, /trending, /subscribe, /newsletter
-(double opt-in via Resend, fixture mode if key absent), trust pages; re-enable typedRoutes.
+Phase 3C — SEO machinery: lib/seo/jsonld builders (§7.1 stacks), wire into every page's
+generateMetadata + JSON-LD; sitemap.ts (sharded + video ext), robots.ts, rss.xml,
+Redirect→middleware 301, canonical (?t= strip); worker seo-ping.ts (IndexNow + sitemap
+ping) + §9.2 publish fan-out; disclaimer/reviewed-by block on medical pages (§7.3).
 
 ## Blockers
 - AI/ASR/YouTube/R2/Meili keys absent → fixtures + MinIO; live runs BLOCKED.
-- 2FA deferred to Phase 6 (better-auth ~1.2.x for zod3). RESEND key absent → 3B newsletter fixture mode.
-- Chapter-seek/transcript-sync/watch-next not exercised headless (need real YT playback) — Playwright e2e lands in 3D.
-- Dev ports 55432/56379/57700/59000. typedRoutes off until 3B.
+- 2FA deferred to Phase 6. RESEND key absent → newsletter in fixture mode (logs confirm URL).
+- Chapter-seek/transcript-sync/watch-next not exercised headless (real YT) — Playwright e2e in 3D.
+- Dev ports 55432/56379/57700/59000. Dev docker stack must be up for build (needs DB).
