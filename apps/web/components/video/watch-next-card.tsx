@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
@@ -11,7 +12,7 @@ export interface WatchNextItem {
   slug: string;
   titleMl: string;
   thumbnailUrl: string;
-  watchHref: string;
+  watchHref: Route;
 }
 
 /** WatchNextCard (§6.1): on video end, an 8s cancellable countdown → next video. */

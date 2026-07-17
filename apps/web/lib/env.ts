@@ -16,6 +16,10 @@ const envSchema = z.object({
   // Better Auth (§10). Dev default secret; MUST be overridden in prod.
   BETTER_AUTH_SECRET: z.string().min(1).default("dev-only-insecure-secret-change-me"),
   BETTER_AUTH_URL: z.string().url().default("http://localhost:3000"),
+
+  // Email (Resend). Absent ⇒ newsletter runs in fixture mode (logs, no send).
+  RESEND_API_KEY: z.string().optional(),
+  EMAIL_FROM: z.string().default("Vaidyasala <newsletter@vaidyasala.live>"),
 });
 
 export const env = envSchema.parse({
@@ -27,4 +31,6 @@ export const env = envSchema.parse({
   ADMIN_INGEST_TOKEN: process.env.ADMIN_INGEST_TOKEN,
   BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
   BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
+  RESEND_API_KEY: process.env.RESEND_API_KEY,
+  EMAIL_FROM: process.env.EMAIL_FROM,
 });

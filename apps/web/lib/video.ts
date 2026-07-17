@@ -1,4 +1,5 @@
 import "server-only";
+import type { Route } from "next";
 import { prisma } from "@vaidyasala/db";
 import { transcriptSegmentSchema, type TranscriptSegment } from "@vaidyasala/core/validation";
 import type { VideoCardData } from "@vaidyasala/ui";
@@ -38,7 +39,7 @@ export interface WatchData {
   segments: TranscriptSegment[];
   chapters: WatchChapter[];
   faqs: WatchFaq[];
-  related: (VideoCardData & { watchHref: string })[];
+  related: (VideoCardData & { watchHref: Route })[];
 }
 
 /** Best thumbnail URL from the Video.thumbnails Json (ingest or seed shape). */
@@ -143,7 +144,7 @@ export async function getVideoBySlug(slug: string): Promise<WatchData | null> {
             nameEn: e.to.primaryTopic.nameEn,
           }
         : undefined,
-      watchHref: `/watch/${e.to.slug}`,
+      watchHref: `/watch/${e.to.slug}` as Route,
     })),
   };
 }
