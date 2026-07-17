@@ -1,0 +1,103 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { getTopicBySlug, publishedTopicSlugs } from "@/lib/feeds";
+import { VideoGrid } from "@/components/home/video-grid";
+
+export const revalidate = 600;
+export const dynamicParams = true;
+
+export async function generateStaticParams(): Promise<{ slug: string }[]> {
+  return (await publishedTopicSlugs()).map((slug) => ({ slug }));
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const topic = await getTopicBySlug(slug);
+  if (!topic) return { title: "Not found" };
+  return {
+    title: `${topic.nameEn} · ${topic.nameMl}`,
+    description: topic.descriptionMl ?? `${topic.nameEn} health videos in Malayalam.`,
+    alternates: { canonical: `/topics/${topic.slug}` },
+  };
+}
+
+export default async function TopicHubPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const topic = await getTopicBySlug(slug);
+  if (!topic) notFound();
+
+  return (
+    <div className="flex flex-col gap-10 py-8">
+      <header className="flex flex-col gap-2">
+        <p className="text-brand text-sm">{topic.nameEn}</p>
+        <h1 className="font-ml text-3xl font-semibold" lang="ml">
+          {topic.nameMl}
+        </h1>
+        {topic.descriptionMl ? (
+          <p className="font-ml text-text-dim max-w-2xl leading-[1.8]" lang="ml">
+            {topic.descriptionMl}
+          </p>
+        ) : null}
+        {topic.ayurconnectUrl ? (
+          <a
+            href={topic.ayurconnectUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-brand text-sm hover:underline"
+          >
+            Related on AyurConnect →
+          </a>
+        ) : null}
+      </header>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-lg font-semibold">Videos</h2>
+        <VideoGrid videos={topic.videos} />
+      </section>
+
+      {topic.articles.length > 0 ? (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-lg font-semibold">Articles</h2>
+          <ul className="flex flex-col gap-2">
+            {topic.articles.map((a) => (
+              <li key={a.slug}>
+                <Link
+                  href={`/articles/${a.slug}`}
+                  className="border-border hover:bg-surface flex items-center justify-between rounded-lg border p-3"
+                >
+                  <span className="font-ml" lang="ml">
+                    {a.titleMl}
+                  </span>
+                  <span className="text-text-dim text-xs">{a.readingMin} min</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {topic.faqs.length > 0 ? (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-lg font-semibold">Frequently asked</h2>
+          <div className="flex flex-col gap-2">
+            {topic.faqs.map((f) => (
+              <details key={f.id} className="border-border rounded-lg border p-3">
+                <summary className="font-ml cursor-pointer font-medium" lang="ml">
+                  {f.questionMl}
+                </summary>
+                <p className="font-ml text-text-dim mt-2 text-sm leading-[1.8]" lang="ml">
+                  {f.answerMl}
+                </p>
+              </details>
+            ))}
+          </div>
+        </section>
+      ) : null}
+    </div>
+  );
+}

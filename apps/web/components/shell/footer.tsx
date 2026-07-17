@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 /** Footer (§1.4): topic index, playlists, newsletter, trust pages. */
-const COLUMNS: { heading: string; links: { href: string; label: string }[] }[] = [
+const COLUMNS = [
   {
     heading: "Explore",
     links: [
@@ -26,7 +26,7 @@ const COLUMNS: { heading: string; links: { href: string; label: string }[] }[] =
       { href: "/terms", label: "Terms" },
     ],
   },
-];
+] as const;
 
 export function Footer() {
   return (

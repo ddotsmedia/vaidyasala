@@ -13,7 +13,7 @@ const NAV = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/queue", label: "Queue" },
   { href: "/admin/videos", label: "Videos" },
-];
+] as const;
 
 /** Admin shell (§13). Gated by the single authorize() layer (§10); noindex. */
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

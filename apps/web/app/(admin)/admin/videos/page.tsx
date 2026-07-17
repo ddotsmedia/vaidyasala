@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Route } from "next";
 import Link from "next/link";
 import { Badge } from "@vaidyasala/ui";
 import { type VideoStatus } from "@vaidyasala/db";
@@ -32,7 +32,7 @@ export default async function VideosPage({
       <nav className="flex flex-wrap gap-2 text-sm">
         {STATUSES.map((s) => {
           const isActive = s === "ALL" ? !active : active === s;
-          const href = s === "ALL" ? "/admin/videos" : `/admin/videos?status=${s}`;
+          const href = (s === "ALL" ? "/admin/videos" : `/admin/videos?status=${s}`) as Route;
           return (
             <Link
               key={s}
