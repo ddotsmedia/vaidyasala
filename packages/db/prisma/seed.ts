@@ -276,6 +276,34 @@ async function main(): Promise<void> {
     await prisma.$executeRaw`UPDATE "Video" SET "embedding" = ${fakeVector(vecSeed++)}::vector WHERE "id" = ${video.id}`;
   }
 
+  // Articles (SEO satellites) + related-edge graph over the seeded videos.
+  const allVideos = await prisma.video.findMany({ select: { id: true, slug: true, titleMl: true } });
+  for (const v of allVideos) {
+    await prisma.article.upsert({
+      where: { videoId: v.id },
+      update: {},
+      create: {
+        videoId: v.id,
+        slug: `${v.slug}-lekhanam`,
+        status: "PUBLISHED",
+        titleMl: `${v.titleMl} — വിശദമായി`,
+        bodyMl: `## ${v.titleMl}\n\nഈ ലേഖനം വീഡിയോയിലെ പ്രധാന വിവരങ്ങൾ സംഗ്രഹിക്കുന്നു.\n\n- ലക്ഷണങ്ങൾ തിരിച്ചറിയുക\n- ശരിയായ ചികിത്സ\n- ജീവിതശൈലി മാറ്റങ്ങൾ\n\nകൂടുതൽ അറിയാൻ വീഡിയോ കാണുക.`,
+        readingMin: 3,
+      },
+    });
+  }
+  // Related edges: fully-connected among seeded videos (both directions).
+  for (const a of allVideos) {
+    for (const b of allVideos) {
+      if (a.id === b.id) continue;
+      await prisma.relatedEdge.upsert({
+        where: { fromId_toId: { fromId: a.id, toId: b.id } },
+        update: {},
+        create: { fromId: a.id, toId: b.id, score: 0.7, reason: "semantic" },
+      });
+    }
+  }
+
   // Playlists
   const playlists = [
     { slug: "prameham-series", titleMl: "പ്രമേഹ പരമ്പര", videoSlugs: ["prameham-lakshanangal-chikitsa"] },
@@ -302,6 +330,8 @@ async function main(): Promise<void> {
     videos: await prisma.video.count(),
     topics: await prisma.topic.count(),
     playlists: await prisma.playlist.count(),
+    articles: await prisma.article.count(),
+    relatedEdges: await prisma.relatedEdge.count(),
     segvectors: await prisma.transcriptSegmentVector.count(),
   };
   console.log("[seed] done", counts);

@@ -19,6 +19,12 @@ export const analyticsEventSchema = z.object({
 });
 export type AnalyticsEventInput = z.infer<typeof analyticsEventSchema>;
 
+/** Newsletter double opt-in (§13 POST /api/v1/newsletter/subscribe). */
+export const newsletterSubscribeSchema = z.object({
+  email: z.string().email().max(254),
+});
+export type NewsletterSubscribeInput = z.infer<typeof newsletterSubscribeSchema>;
+
 /** Canonical funnel event names (§6.1 money flow). */
 export const FUNNEL_EVENTS = {
   play: "play",

@@ -26,12 +26,25 @@ export const qualityGateStage: StageFactory = (deps) => async ({ videoId }) => {
   const composite = Number(
     (0.5 * transcriptQuality + 0.25 * hasEnrichment + 0.25 * hasArticle).toFixed(3),
   );
-  const flagged = composite < QUALITY_THRESHOLD;
+
+  // §1.3 internal-link rule: no orphan pages — a publish-ready page needs ≥3
+  // inbound internal links (related edges pointing here + topic memberships +
+  // its companion article). Below that stays DRAFT flagged.
+  const [inboundEdges, topicLinks] = await Promise.all([
+    deps.prisma.relatedEdge.count({ where: { toId: videoId } }),
+    deps.prisma.topicVideo.count({ where: { videoId } }),
+  ]);
+  const inboundLinks = inboundEdges + topicLinks + hasArticle;
+  const flagged = composite < QUALITY_THRESHOLD || inboundLinks < 3;
 
   await deps.prisma.video.update({
     where: { id: videoId },
     data: { qualityScore: composite, status: VideoStatus.DRAFT },
   });
-  deps.log(`[quality-gate] ${videoId} score=${composite}${flagged ? " FLAGGED" : " ready"} → DRAFT`);
+  deps.log(
+    `[quality-gate] ${videoId} score=${composite} inbound=${inboundLinks}${
+      flagged ? " FLAGGED" : " ready"
+    } → DRAFT`,
+  );
   return { videoId, costUsd: 0 };
 };
