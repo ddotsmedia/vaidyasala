@@ -27,9 +27,13 @@ export interface WatchData {
   slug: string;
   titleMl: string;
   titleEn: string | null;
+  description: string | null;
   thumbnailUrl: string;
   durationSec: number;
   publishedAt: string | null;
+  updatedAt: string;
+  viewCount?: number;
+  transcriptText: string | null;
   channelUrl: string;
   subscriberCount?: number;
   topic: { slug: string; nameMl: string } | null;
@@ -73,7 +77,7 @@ export async function getVideoBySlug(slug: string): Promise<WatchData | null> {
     where: { slug, status: "PUBLISHED" },
     include: {
       primaryTopic: { select: { slug: true, nameMl: true } },
-      transcript: { select: { segments: true } },
+      transcript: { select: { segments: true, correctedMl: true, rawMl: true } },
       enrichment: { select: { summaryMl: true, summaryEn: true, keyTakeaways: true } },
       chapters: { orderBy: { startSec: "asc" } },
       faqs: { orderBy: { order: "asc" } },
@@ -102,7 +106,7 @@ export async function getVideoBySlug(slug: string): Promise<WatchData | null> {
     .array()
     .safeParse(video.transcript?.segments ?? []);
 
-  const stats = video.stats as { subscribers?: number } | null;
+  const stats = video.stats as { subscribers?: number; views?: number } | null;
 
   return {
     id: video.id,
@@ -110,9 +114,13 @@ export async function getVideoBySlug(slug: string): Promise<WatchData | null> {
     slug: video.slug,
     titleMl: video.titleMl,
     titleEn: video.titleEn,
+    description: video.description,
     thumbnailUrl: thumbnailUrl(video.youtubeId, video.thumbnails),
     durationSec: video.durationSec,
     publishedAt: video.publishedAt?.toISOString() ?? null,
+    updatedAt: video.updatedAt.toISOString(),
+    viewCount: stats?.views,
+    transcriptText: video.transcript?.correctedMl ?? video.transcript?.rawMl ?? null,
     channelUrl: channelUrl(),
     subscriberCount: stats?.subscribers,
     topic: video.primaryTopic,

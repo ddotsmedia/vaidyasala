@@ -198,7 +198,10 @@ export async function getArticleBySlug(slug: string) {
     titleMl: article.titleMl,
     bodyMl: article.bodyMl,
     readingMin: article.readingMin,
+    createdAt: article.createdAt.toISOString(),
+    updatedAt: article.updatedAt.toISOString(),
     sourceVideo: article.video ? toCard(article.video) : null,
+    sourceVideoSlug: article.video?.slug ?? null,
   };
 }
 

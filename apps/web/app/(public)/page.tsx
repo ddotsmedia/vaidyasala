@@ -12,6 +12,7 @@ import { VideoGrid, LinkedRail } from "@/components/home/video-grid";
 import { NewsletterForm } from "@/components/home/newsletter-form";
 import { ContinueIsland, RecommendedIsland, RailSkeleton } from "@/components/home/islands";
 import { SubscribeCTA } from "@vaidyasala/ui";
+import { JsonLd, websiteLd, organizationLd } from "@/lib/seo";
 
 export const revalidate = 300;
 
@@ -29,6 +30,7 @@ export default async function HomePage() {
 
   return (
     <div className="flex flex-col gap-12 py-8">
+      <JsonLd data={[websiteLd(), organizationLd()]} />
       {/* Featured */}
       {featured ? (
         <section className="flex flex-col gap-3">

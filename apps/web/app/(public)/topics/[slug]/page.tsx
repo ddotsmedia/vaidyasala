@@ -3,6 +3,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTopicBySlug, publishedTopicSlugs } from "@/lib/feeds";
 import { VideoGrid } from "@/components/home/video-grid";
+import { MedicalDisclaimer } from "@/components/seo/medical-disclaimer";
+import {
+  JsonLd,
+  pageMetadata,
+  collectionPageLd,
+  medicalConditionLd,
+  breadcrumbLd,
+} from "@/lib/seo";
 
 export const revalidate = 600;
 export const dynamicParams = true;
@@ -19,11 +27,11 @@ export async function generateMetadata({
   const { slug } = await params;
   const topic = await getTopicBySlug(slug);
   if (!topic) return { title: "Not found" };
-  return {
+  return pageMetadata({
     title: `${topic.nameEn} · ${topic.nameMl}`,
     description: topic.descriptionMl ?? `${topic.nameEn} health videos in Malayalam.`,
-    alternates: { canonical: `/topics/${topic.slug}` },
-  };
+    path: `/topics/${topic.slug}`,
+  });
 }
 
 export default async function TopicHubPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -31,8 +39,26 @@ export default async function TopicHubPage({ params }: { params: Promise<{ slug:
   const topic = await getTopicBySlug(slug);
   if (!topic) notFound();
 
+  const isCondition = topic.kind === "CONDITION";
+
   return (
     <div className="flex flex-col gap-10 py-8">
+      <JsonLd
+        data={[
+          collectionPageLd({
+            name: `${topic.nameEn} · ${topic.nameMl}`,
+            path: `/topics/${topic.slug}`,
+            description: topic.descriptionMl,
+            items: topic.videos.map((v) => ({ slug: v.slug, titleMl: v.titleMl })),
+          }),
+          ...(isCondition ? [medicalConditionLd(topic.nameMl, topic.nameEn)] : []),
+          breadcrumbLd([
+            { name: "Home", path: "/" },
+            { name: "Topics", path: "/topics" },
+            { name: topic.nameMl, path: `/topics/${topic.slug}` },
+          ]),
+        ]}
+      />
       <header className="flex flex-col gap-2">
         <p className="text-brand text-sm">{topic.nameEn}</p>
         <h1 className="font-ml text-3xl font-semibold" lang="ml">
@@ -98,6 +124,8 @@ export default async function TopicHubPage({ params }: { params: Promise<{ slug:
           </div>
         </section>
       ) : null}
+
+      <MedicalDisclaimer />
     </div>
   );
 }

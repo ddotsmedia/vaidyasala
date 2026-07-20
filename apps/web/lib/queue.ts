@@ -4,8 +4,10 @@ import { Queue, type JobsOptions, type ConnectionOptions } from "bullmq";
 import {
   QUEUE_NAMES,
   PIPELINE_STAGES,
+  OPS_JOBS,
   idempotencyKey,
   type IngestJobData,
+  type SeoPingInput,
 } from "@vaidyasala/core/queue";
 import { prisma } from "@vaidyasala/db";
 import { env } from "./env";
@@ -40,6 +42,7 @@ const queues =
   };
 if (process.env.NODE_ENV !== "production") globalForQueue.queues = queues;
 const ingestQueue = queues[QUEUE_NAMES.ingest]!;
+const opsQueue = queues[QUEUE_NAMES.ops]!;
 
 const PIPELINE_SET = new Set<string>(PIPELINE_STAGES);
 /** Map a Job.kind (§2 mirror) to the BullMQ queue that owns it. */
@@ -79,6 +82,22 @@ export async function enqueueIngest(data: IngestJobData): Promise<string> {
   await prisma.job.upsert({
     where: { id: jobId },
     create: { id: jobId, kind: "ingest", status: "queued", attempts: 0 },
+    update: { status: "queued" },
+  });
+  return jobId;
+}
+
+/**
+ * Enqueue a seo-ping ops job (§7.2/§9.2 publish fan-out): submit fresh URLs to
+ * IndexNow + Google. Mirrored to the Job table; keyed by content so repeated
+ * publishes of the same URL set coalesce.
+ */
+export async function enqueueSeoPing(input: SeoPingInput): Promise<string> {
+  const jobId = idempotencyKey("seo-ping", input.reason, contentHash(input.urls.join("|")));
+  await opsQueue.add(OPS_JOBS.seoPing, input, { ...JOB_OPTS, jobId });
+  await prisma.job.upsert({
+    where: { id: jobId },
+    create: { id: jobId, kind: "seo-ping", status: "queued", attempts: 0 },
     update: { status: "queued" },
   });
   return jobId;

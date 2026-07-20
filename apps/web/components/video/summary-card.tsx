@@ -25,7 +25,7 @@ export function SummaryCard({
         {publishedAt ? <span>· {publishedAt.slice(0, 10)}</span> : null}
       </div>
       {summaryMl ? (
-        <p className="font-ml text-[15px] leading-[1.8]" lang="ml">
+        <p className="font-ml text-[15px] leading-[1.8]" lang="ml" data-speakable>
           {summaryMl}
         </p>
       ) : null}

@@ -22,6 +22,8 @@ import { createAudioExtractor } from "./youtube/audio";
 import { createIngestProcessor } from "./jobs/ingest";
 import { createStatsRefreshProcessor } from "./jobs/stats-refresh";
 import { createYtPollProcessor } from "./jobs/yt-poll";
+import { createSeoPingProcessor } from "./jobs/seo-ping";
+import { seoPingInputSchema } from "@vaidyasala/core/queue";
 import { enqueueIngest } from "./enqueue";
 
 const log = (msg: string): void => console.log(msg);
@@ -74,6 +76,11 @@ async function main(): Promise<void> {
     enqueueIngest,
     log,
   });
+  const seoPing = createSeoPingProcessor({
+    siteUrl: env.SITE_URL,
+    indexNowKey: env.INDEXNOW_KEY,
+    log,
+  });
 
   const workers: Worker[] = [
     new Worker(QUEUE_NAMES.ingest, (job) => runMirrored(prisma, job, () => ingest(job.data)), {
@@ -84,7 +91,11 @@ async function main(): Promise<void> {
       QUEUE_NAMES.ops,
       (job) =>
         runMirrored(prisma, job, async () => {
-          const r = job.name === OPS_JOBS.statsRefresh ? await statsRefresh() : await ytPoll();
+          let r: { costUsd: number };
+          if (job.name === OPS_JOBS.statsRefresh) r = await statsRefresh();
+          else if (job.name === OPS_JOBS.seoPing)
+            r = await seoPing(seoPingInputSchema.parse(job.data));
+          else r = await ytPoll();
           return { costUsd: r.costUsd };
         }),
       { connection, concurrency: 2 },

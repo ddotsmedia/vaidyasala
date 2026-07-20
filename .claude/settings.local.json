@@ -12,7 +12,24 @@
       "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('C:/web/Vaidyasala/.claude/settings.json','utf8'\\)\\); console.log\\('valid JSON ✓'\\)\")",
       "Bash(pnpm --filter @vaidyasala/ui typecheck)",
       "Bash(pnpm --filter @vaidyasala/ui lint)",
-      "Bash(pnpm --filter @vaidyasala/web typecheck)"
+      "Bash(pnpm --filter @vaidyasala/web typecheck)",
+      "Bash(docker compose *)",
+      "Bash(powershell.exe -NoProfile -Command \"Start-Process 'C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe'\")",
+      "Bash(pnpm install *)",
+      "Bash(pnpm typecheck *)",
+      "Bash(pnpm lint *)",
+      "Bash(pnpm --filter @vaidyasala/web test)",
+      "Bash(pnpm --filter @vaidyasala/web build)",
+      "Bash(curl -s http://localhost:3000/sitemap/videos.xml)",
+      "Bash(kill 1056)",
+      "Bash(xargs grep -l \"thumbnail_loc\\\\|video:video\")",
+      "Bash(node -e \"console.log\\(require\\('path'\\).dirname\\(require.resolve\\('next/package.json'\\)\\)\\)\")",
+      "Bash(grep -rl thumbnail_loc __TRACKED_VAR__/dist)",
+      "Bash(kill 148)",
+      "Bash(docker exec *)",
+      "Bash(curl -s http://localhost:3000/api/internal/redirects)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code} -> %{redirect_url}\\\\n\" http://localhost:3000/old-diabetes)",
+      "Bash(kill 863)"
     ]
   }
 }

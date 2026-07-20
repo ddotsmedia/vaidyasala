@@ -35,12 +35,24 @@ export const PIPELINE_STAGES = [
 ] as const;
 export type PipelineStage = (typeof PIPELINE_STAGES)[number];
 
-/** Ops queue job kinds (§9.3 cron). */
+/** Ops queue job kinds (§9.3 cron + §9.2 publish fan-out). */
 export const OPS_JOBS = {
   ytPoll: "yt-poll",
   statsRefresh: "stats-refresh",
+  seoPing: "seo-ping",
 } as const;
 export type OpsJob = (typeof OPS_JOBS)[keyof typeof OPS_JOBS];
+
+/**
+ * seo-ping job input (§7.2/§9.2): the freshly published/updated URLs to submit
+ * to IndexNow (Bing/Yandex) and to re-ping Google's sitemap. `reason` is for
+ * observability. Shared contract between the publish fan-out (web) and worker.
+ */
+export const seoPingInputSchema = z.object({
+  urls: z.array(z.string().url()).min(1).max(100),
+  reason: z.enum(["publish", "update", "hide"]).default("publish"),
+});
+export type SeoPingInput = z.infer<typeof seoPingInputSchema>;
 
 /** Job kinds mirrored to the `Job` table (§2). */
 export type JobKind = "ingest" | PipelineStage | OpsJob;

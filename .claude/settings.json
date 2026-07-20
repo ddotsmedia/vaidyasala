@@ -64,7 +64,8 @@
       "Bash(pnpm --filter @vaidyasala/web lint)",
       "Bash(pnpm --filter @vaidyasala/web build)",
       "Bash(powershell.exe -Command \"Start-Process 'C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe'\")",
-      "Bash(pnpm dlx *)"
+      "Bash(pnpm dlx *)",
+      "Bash(git commit -q -m ' *)"
     ],
     "deny": [
       "Bash(ssh:*)",

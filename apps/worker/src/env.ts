@@ -35,6 +35,11 @@ const envSchema = z.object({
   ANTHROPIC_API_KEY: z.string().optional(),
   SARVAM_API_KEY: z.string().optional(),
   EMBED_API_KEY: z.string().optional(),
+
+  // SEO ping (§7.2). Canonical site origin + IndexNow key. Absent key ⇒ seo-ping
+  // runs in fixture mode (logs the payload it would submit).
+  SITE_URL: z.string().url().default("http://localhost:3000"),
+  INDEXNOW_KEY: z.string().optional(),
 });
 
 export const env = envSchema.parse(process.env);

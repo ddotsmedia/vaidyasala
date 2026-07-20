@@ -2,9 +2,18 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getVideoBySlug, publishedSlugs } from "@/lib/video";
 import { WatchExperience } from "@/components/video/watch-experience";
+import { MedicalDisclaimer } from "@/components/seo/medical-disclaimer";
+import {
+  JsonLd,
+  pageMetadata,
+  ogImageUrl,
+  videoObjectLd,
+  faqPageLd,
+  medicalWebPageLd,
+  breadcrumbLd,
+} from "@/lib/seo";
 
-// ISR: statically generated, revalidated on publish (§11). Full tag-based
-// revalidation + JSON-LD/SEO machinery land in Phase 3C.
+// ISR: statically generated, revalidated on publish (§11) + full JSON-LD/OG (§7).
 export const revalidate = 300;
 export const dynamicParams = true;
 
@@ -21,16 +30,15 @@ export async function generateMetadata({
   const { slug } = await params;
   const video = await getVideoBySlug(slug);
   if (!video) return { title: "Not found" };
-  return {
+  return pageMetadata({
     title: video.titleMl,
-    description: video.summaryMl?.slice(0, 155) ?? undefined,
-    alternates: { canonical: `/watch/${video.slug}` },
-    openGraph: {
-      title: video.titleMl,
-      description: video.summaryMl?.slice(0, 155) ?? undefined,
-      type: "video.other",
-    },
-  };
+    description: video.summaryMl ?? video.description,
+    path: `/watch/${video.slug}`,
+    ogImage: ogImageUrl(video.slug),
+    type: "video.other",
+    publishedTime: video.publishedAt,
+    video: { embedUrl: `https://www.youtube-nocookie.com/embed/${video.youtubeId}` },
+  });
 }
 
 export default async function WatchPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -38,9 +46,44 @@ export default async function WatchPage({ params }: { params: Promise<{ slug: st
   const video = await getVideoBySlug(slug);
   if (!video) notFound();
 
+  const crumbs = [
+    { name: "Home", path: "/" },
+    ...(video.topic ? [{ name: video.topic.nameMl, path: `/topics/${video.topic.slug}` }] : []),
+    { name: video.titleMl, path: `/watch/${video.slug}` },
+  ];
+
   return (
     <article className="py-6">
+      <JsonLd
+        data={[
+          videoObjectLd({
+            slug: video.slug,
+            youtubeId: video.youtubeId,
+            titleMl: video.titleMl,
+            titleEn: video.titleEn,
+            description: video.summaryMl ?? video.description,
+            thumbnailUrl: video.thumbnailUrl,
+            durationSec: video.durationSec,
+            publishedAt: video.publishedAt,
+            viewCount: video.viewCount,
+            transcript: video.transcriptText,
+            chapters: video.chapters,
+          }),
+          ...(video.faqs.length
+            ? [faqPageLd(video.faqs.map((f) => ({ questionMl: f.questionMl, answerMl: f.answerMl })))]
+            : []),
+          medicalWebPageLd({
+            name: video.titleMl,
+            path: `/watch/${video.slug}`,
+            description: video.summaryMl ?? video.description,
+            lastReviewed: video.updatedAt,
+            speakable: true,
+          }),
+          breadcrumbLd(crumbs),
+        ]}
+      />
       <WatchExperience data={video} />
+      <MedicalDisclaimer lastReviewed={video.updatedAt} className="mt-8" />
     </article>
   );
 }

@@ -2,6 +2,8 @@
 import { updateTag, revalidatePath } from "next/cache";
 import { prisma, VideoStatus } from "@vaidyasala/db";
 import { authorize } from "@/lib/authz";
+import { enqueueSeoPing } from "@/lib/queue";
+import { absoluteUrl } from "@/lib/seo";
 
 export interface ActionResult {
   ok: boolean;
@@ -18,7 +20,10 @@ export async function publishVideo(videoId: string): Promise<ActionResult> {
   const authz = await authorize("EDITOR");
   if (!authz.ok) return { ok: false, error: authz.reason };
 
-  const video = await prisma.video.findUnique({ where: { id: videoId } });
+  const video = await prisma.video.findUnique({
+    where: { id: videoId },
+    include: { primaryTopic: { select: { slug: true } }, article: { select: { slug: true } } },
+  });
   if (!video) return { ok: false, error: "not found" };
   if (video.status !== VideoStatus.DRAFT && video.status !== VideoStatus.HIDDEN) {
     return { ok: false, error: `cannot publish from ${video.status}` };
@@ -38,11 +43,23 @@ export async function publishVideo(videoId: string): Promise<ActionResult> {
     },
   });
 
-  // BLOCKED-adjacent: sitemap/IndexNow/RSS/og-image fan-out is Phase 3C (§9.2).
-  // updateTag = read-your-own-writes invalidation (Next 16 server-action API).
+  // Publish fan-out (§9.2): cache invalidation (revalidateTag) is done inline;
+  // sitemap/RSS are dynamic (regenerate on next request); IndexNow + Google ping
+  // and og-image/edges run in the worker via the seo-ping ops job.
   updateTag(`video:${videoId}`);
   updateTag("home");
+  if (video.primaryTopic) updateTag(`topic:${video.primaryTopic.slug}`);
   revalidatePath("/admin/videos");
+
+  const urls = [
+    absoluteUrl(`/watch/${video.slug}`),
+    absoluteUrl("/"),
+    ...(video.primaryTopic ? [absoluteUrl(`/topics/${video.primaryTopic.slug}`)] : []),
+    ...(video.article ? [absoluteUrl(`/articles/${video.article.slug}`)] : []),
+  ];
+  await enqueueSeoPing({ urls, reason: "publish" }).catch(() => {
+    /* ping is best-effort — never fail the publish on a queue hiccup */
+  });
   return { ok: true };
 }
 
