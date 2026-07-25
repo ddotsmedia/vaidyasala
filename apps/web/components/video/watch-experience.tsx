@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { RelatedRail, VideoCard, ShareSheet, Button } from "@vaidyasala/ui";
 import type { WatchData } from "@/lib/video";
@@ -10,10 +11,24 @@ import { KeyTakeaways } from "./key-takeaways";
 import { ChapterList } from "./chapter-list";
 import { TranscriptView } from "./transcript-view";
 import { FaqAccordion } from "./faq-accordion";
-import { StickyPlayer } from "./sticky-player";
-import { WatchNextCard } from "./watch-next-card";
-import { AudioModeBar } from "./audio-mode-bar";
-import { SubscribeOverlay } from "./subscribe-overlay";
+import { LazyInView } from "./lazy-in-view";
+
+// Interaction/scroll-only islands — split into their own chunks and mounted only
+// when needed (§3D). Motion lives only in these three, so it leaves the initial
+// /watch bundle entirely.
+const StickyPlayer = dynamic(() => import("./sticky-player").then((m) => m.StickyPlayer), {
+  ssr: false,
+});
+const WatchNextCard = dynamic(() => import("./watch-next-card").then((m) => m.WatchNextCard), {
+  ssr: false,
+});
+const AudioModeBar = dynamic(() => import("./audio-mode-bar").then((m) => m.AudioModeBar), {
+  ssr: false,
+});
+const SubscribeOverlay = dynamic(
+  () => import("./subscribe-overlay").then((m) => m.SubscribeOverlay),
+  { ssr: false },
+);
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
@@ -61,6 +76,7 @@ function useKeyboardControls(): void {
 
 function WatchLayout({ data }: { data: WatchData }) {
   const heroRef = useRef<HTMLDivElement>(null);
+  const { activated } = usePlayer();
   useKeyboardControls();
   const shareUrl = `${SITE_URL}/watch/${data.slug}`;
   const next = data.related[0]
@@ -83,7 +99,8 @@ function WatchLayout({ data }: { data: WatchData }) {
               title={data.titleMl}
               thumbnailUrl={data.thumbnailUrl}
             />
-            <WatchNextCard next={next} videoId={data.id} />
+            {/* End-of-video overlay — only relevant once playback has started. */}
+            {activated ? <WatchNextCard next={next} videoId={data.id} /> : null}
           </div>
 
           <h1 className="font-ml text-2xl font-semibold leading-[1.5]" lang="ml">
@@ -104,11 +121,19 @@ function WatchLayout({ data }: { data: WatchData }) {
             <AudioModeBar text={data.summaryMl ?? ""} />
           </div>
 
-          <SubscribeOverlay
-            channelUrl={data.channelUrl}
-            subscriberCount={data.subscriberCount}
-            videoId={data.id}
-          />
+          <LazyInView minHeight={96}>
+            <SubscribeOverlay
+              channelUrl={data.channelUrl}
+              subscriberCount={data.subscriberCount}
+              videoId={data.id}
+            />
+          </LazyInView>
+
+          {/* Mounts the scroll-docking mini-player (Motion) as soon as the user
+              scrolls into the content below the hero. */}
+          <LazyInView>
+            <StickyPlayer title={data.titleMl} heroRef={heroRef} />
+          </LazyInView>
 
           <KeyTakeaways takeaways={data.takeaways} />
           <TranscriptView segments={data.segments} />
@@ -121,19 +146,19 @@ function WatchLayout({ data }: { data: WatchData }) {
       </div>
 
       {data.related.length > 0 ? (
-        <RelatedRail
-          className="mt-10"
-          title="Watch next"
-          videos={data.related}
-          renderItem={(v) => (
-            <Link href={`/watch/${v.slug}`} className="block">
-              <VideoCard video={v} size="md" />
-            </Link>
-          )}
-        />
+        <LazyInView minHeight={280}>
+          <RelatedRail
+            className="mt-10"
+            title="Watch next"
+            videos={data.related}
+            renderItem={(v) => (
+              <Link href={`/watch/${v.slug}`} className="block">
+                <VideoCard video={v} size="md" />
+              </Link>
+            )}
+          />
+        </LazyInView>
       ) : null}
-
-      <StickyPlayer title={data.titleMl} heroRef={heroRef} />
     </>
   );
 }

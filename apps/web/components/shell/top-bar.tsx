@@ -3,8 +3,9 @@
 import * as React from "react";
 import Link from "next/link";
 import { Search } from "lucide-react";
-import { Button, SearchOmnibox, SubscribeCTA, type SearchGroup } from "@vaidyasala/ui";
+import { Button, SubscribeCTA, type SearchGroup } from "@vaidyasala/ui";
 import { ThemeSwitcher } from "./theme-switcher";
+import { SearchOmniboxLazy } from "./search-omnibox-lazy";
 
 const CHANNEL_URL = "https://www.youtube.com/@vaidyasala";
 
@@ -14,12 +15,19 @@ const CHANNEL_URL = "https://www.youtube.com/@vaidyasala";
  */
 export function TopBar() {
   const [open, setOpen] = React.useState(false);
+  const [everOpened, setEverOpened] = React.useState(false);
   const [query, setQuery] = React.useState("");
+
+  const openSearch = React.useCallback(() => {
+    setEverOpened(true);
+    setOpen(true);
+  }, []);
 
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
+        setEverOpened(true);
         setOpen((v) => !v);
       }
     };
@@ -39,7 +47,7 @@ export function TopBar() {
 
         <button
           type="button"
-          onClick={() => setOpen(true)}
+          onClick={openSearch}
           className="ml-2 hidden h-9 flex-1 items-center gap-2 rounded-md border border-border bg-surface px-3 text-sm text-text-dim sm:flex"
         >
           <Search className="size-4" />
@@ -56,7 +64,7 @@ export function TopBar() {
           </Button>
           <button
             type="button"
-            onClick={() => setOpen(true)}
+            onClick={openSearch}
             aria-label="Search"
             className="rounded-md p-2 text-text-dim hover:text-text sm:hidden"
           >
@@ -67,13 +75,15 @@ export function TopBar() {
         </nav>
       </div>
 
-      <SearchOmnibox
-        open={open}
-        onOpenChange={setOpen}
-        query={query}
-        onQueryChange={setQuery}
-        groups={groups}
-      />
+      {everOpened ? (
+        <SearchOmniboxLazy
+          open={open}
+          onOpenChange={setOpen}
+          query={query}
+          onQueryChange={setQuery}
+          groups={groups}
+        />
+      ) : null}
     </header>
   );
 }

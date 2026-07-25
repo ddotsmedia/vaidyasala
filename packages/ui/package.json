@@ -38,5 +38,6 @@
     "eslint": "^9.13.0",
     "react": "^19.0.0",
     "typescript": "^5.6.3"
-  }
+  },
+  "sideEffects": false
 }

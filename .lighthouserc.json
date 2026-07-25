@@ -2,16 +2,25 @@
   "ci": {
     "collect": {
       "startServerCommand": "pnpm --filter @vaidyasala/web start",
-      "url": ["http://localhost:3000/", "http://localhost:3000/styleguide"],
+      "startServerReadyPattern": "Ready in",
+      "url": [
+        "http://localhost:3000/",
+        "http://localhost:3000/watch/prameham-lakshanangal-chikitsa"
+      ],
       "numberOfRuns": 1,
-      "settings": { "preset": "desktop" }
+      "settings": {
+        "preset": "desktop",
+        "chromeFlags": "--no-sandbox --headless=new",
+        "skipAudits": ["uses-http2", "canonical", "is-crawlable", "redirects-http"]
+      }
     },
     "assert": {
       "assertions": {
-        "categories:performance": ["warn", { "minScore": 0.95 }],
-        "largest-contentful-paint": ["warn", { "maxNumericValue": 1800 }],
-        "cumulative-layout-shift": ["warn", { "maxNumericValue": 0.05 }],
-        "total-byte-weight": ["warn", { "maxNumericValue": 1000000 }]
+        "cumulative-layout-shift": ["error", { "maxNumericValue": 0.05 }],
+        "largest-contentful-paint": ["error", { "maxNumericValue": 2000 }],
+        "categories:performance": ["error", { "minScore": 0.9 }],
+        "categories:accessibility": ["warn", { "minScore": 0.9 }],
+        "resource-summary:script:size": ["warn", { "maxNumericValue": 174080 }]
       }
     },
     "upload": { "target": "temporary-public-storage" }

@@ -29,7 +29,30 @@
       "Bash(docker exec *)",
       "Bash(curl -s http://localhost:3000/api/internal/redirects)",
       "Bash(curl -s -o /dev/null -w \"%{http_code} -> %{redirect_url}\\\\n\" http://localhost:3000/old-diabetes)",
-      "Bash(kill 863)"
+      "Bash(kill 863)",
+      "Bash(cd /c/web/Vaidyasala *)",
+      "Read(//tmp/**)",
+      "Read(//c/Users/Owner/AppData/Local/**)",
+      "Read(//c/Program Files/Google/Chrome/Application/**)",
+      "Read(//c/Program Files \\\\\\(x86\\\\\\)/Google/Chrome/Application/**)",
+      "Read(//c/Program Files/Microsoft/Edge/Application/**)",
+      "Bash(node -e 'const j=JSON.parse\\(require\\(\"fs\"\\).readFileSync\\(process.argv[1],\"utf8\"\\)\\);console.log\\(j.jobs[0].id\\);' __TRACKED_VAR__/jobs.json)",
+      "Bash(curl -sL __TRACKED_VAR__/actions/jobs/__TRACKED_VAR__/logs -o __TRACKED_VAR__/joblog.txt)",
+      "Bash(grep -iE 'error|DATABASE_URL|Can'\\\\''t reach|prisma|Failed to collect' __TRACKED_VAR__/joblog.txt)",
+      "Bash(grep -n Build __TRACKED_VAR__/joblog.txt)",
+      "Bash(export DATABASE_URL=\"postgresql://vaidyasala:vaidyasala@localhost:55432/vaidyasala?schema=public\" REDIS_URL=\"redis://localhost:56379\" NEXT_PUBLIC_SITE_URL=\"http://localhost:3000\")",
+      "Bash(pnpm --filter @vaidyasala/web start)",
+      "Bash(echo \"pid $!\")",
+      "Bash(curl -sf -o /dev/null http://localhost:3000/api/health)",
+      "Bash(break)",
+      "Bash(node -e ' *)",
+      "Bash(kill 504)",
+      "Bash(export CI=1)",
+      "Bash(pnpm --filter @vaidyasala/web e2e:install)",
+      "Bash(pnpm --filter @vaidyasala/web e2e)"
+    ],
+    "additionalDirectories": [
+      "\\tmp"
     ]
   }
 }
