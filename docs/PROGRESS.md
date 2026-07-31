@@ -1,33 +1,39 @@
 # PROGRESS — Vaidyasala
 
 ## Current phase
-Phase 4 — Search (next 4A) · Phase 3 COMPLETE (3A-3D, CI green)
+Phase 4 — Search (4A ✓ · next 4B)
 
 ## Done
-- ✓ Phase 0-1 (foundation, CI) · Phase 2 (2A-2D) · Phase 3 (3A-3D)
-- ✓ 3C SEO: jsonld builders (all §7.1 stacks), sharded sitemaps + video ext, robots,
-    rss.xml, middleware 301s + canonical strip, seo-ping fan-out, medical disclaimer
-- ✓ 3D Performance gate:
-  - deferred cmdk omnibox (load-on-open), Motion comps (dynamic ssr:false),
-    below-fold islands (LazyInView), tree-shaking (sideEffects:false + optimizePackageImports)
-  - next/image AVIF/WebP hero (priority); CLS measured 0.005
-  - CI rebuilt: pgvector Postgres + Redis services, migrate+seed before build;
-    e2e-perf job flipped to BLOCKING (Playwright happy-path + LHCI budgets)
-  - Lighthouse gate: CLS≤0.05 + LCP≤2000 + perf≥0.90 blocking; script-size(170KB) warn
-  - CI run a01833c GREEN (both jobs), Deploy gated/skipped
-- ✓ Exit checks: typecheck ✓ lint ✓ test ✓ build ✓ e2e ✓ (5 tests) lighthouse ✓ CI ✓
+- ✓ Phase 0-3 complete (foundation/CI, ingest+AI pipeline, public core+SEO+perf, all CI green)
+- ✓ 4A Meilisearch + omnibox (§14 lexical, §2 SynonymMapping/SearchQueryLog):
+  - packages/core/search: config.ts (§14 index settings — searchable weights title>keywords>
+    summary>chapters>transcript, filterable/sortable), article/topic/faq mappers, classifyScript
+    (malayalam/latin/manglish), client.ts SearchClient (ensureIndexes/upsert*/clearAll/
+    syncSynonyms/multi-search grouped) — server-only via ./search/client subpath
+  - infra/scripts/reindex.ts (root `pnpm search:reindex`): rebuild all 4 indexes from Postgres +
+    apply settings + sync approved SynonymMapping → verified rebuilds from empty
+  - worker jobs/index-search + meili port refactored onto the shared SearchClient
+  - GET /api/v1/search (Zod searchQuerySchema, in-memory rate-limit 30/10s, grouped results,
+    SearchQueryLog write w/ script detection); graceful empty when Meili unconfigured
+  - SearchController (debounced fetch, voice ml-IN, keyboard nav) wired into TopBar omnibox;
+    /search deep-link page (noindex)
+- ✓ Exit checks: typecheck ✓ lint ✓ test ✓ (58 tests); reindex from empty ✓; ML "തൈറോയ്ഡ്"
+    + EN "diabetes" return grouped Videos/Articles/Topics/FAQs; synonym "sugar"→diabetes;
+    zero-result logged; SearchQueryLog rows written w/ correct script.
 
 ## Next step
-Phase 4A — Meilisearch + omnibox (§14 lexical, §2 SynonymMapping/SearchQueryLog):
-packages/core/search index configs (videos/articles/topics/faqs weights, transcript
-chunking) + infra/scripts/reindex.ts + synonym sync from approved SynonymMapping;
-GET /api/v1/search (Zod, rate-limited, SearchQueryLog write + script detection);
-wire SearchOmnibox (⌘K grouped instant results, keyboard nav, voice ml-IN) + /search page.
+Phase 4B — Manglish + semantic + AI answers (§14 manglish/semantic/AI-answer, §6.4):
+core/search/manglish (Mozhi/ISO-15919 transliterator + top-k + SynonymMapping lookup, 30-query
+fixture); pgvector segment search (HNSW cosine) + RRF hybrid trigger rules; POST /api/v1/ai/answer
+(embed→top-12→rerank→threshold gate→Claude cites [videoId,startSec]→SSE, else honest no-answer +
+gap log); admin /admin/search-analytics (top queries, zero-result report, synonym approval queue).
 
 ## Blockers
 - AI/ASR/YouTube/R2/INDEXNOW/RESEND keys absent → fixtures/MinIO/fixture-mode; live BLOCKED.
-- 2FA deferred to Phase 6. Local Lighthouse LCP/perf unmeasurable (Chrome+LH12 trace bug);
-  CI (Linux) measures fine. Strict JS-byte budget (170KB) deferred to a splitting pass (warn).
-- Dev ports 55432/56379/57700/59000. Build needs DB up + explicit env export (BOM in .env);
-  `export DATABASE_URL=postgresql://vaidyasala:vaidyasala@localhost:55432/vaidyasala?schema=public`.
-- MEILI_MASTER_KEY present in dev compose; Meilisearch reachable at localhost:57700.
+  4B AI-answer runs against fixtures (no ANTHROPIC/EMBED keys); live composition BLOCKED.
+- Docker Desktop daemon is UNSTABLE here (flaps every few min) — restart + `docker compose up -d`
+  as needed; dev Meili key = devMasterKeyChangeMe0000000000000000.
+- Build/search need env exported (BOM in .env): DATABASE_URL=postgresql://vaidyasala:vaidyasala@
+  localhost:55432/vaidyasala?schema=public, MEILI_URL=http://localhost:57700, MEILI_MASTER_KEY=…
+  Kill stale `next start` on :3000 before restarting (EADDRINUSE binds silently to old env).
+- 2FA deferred to Phase 6. Local Lighthouse trace bug (perf/LCP NaN); CI Linux measures fine.
