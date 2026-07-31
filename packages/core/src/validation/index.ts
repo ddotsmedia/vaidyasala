@@ -39,4 +39,11 @@ export const FUNNEL_EVENTS = {
 } as const;
 export type FunnelEvent = (typeof FUNNEL_EVENTS)[keyof typeof FUNNEL_EVENTS];
 
+/** Public search query (§13/§14 GET /api/v1/search). */
+export const searchQuerySchema = z.object({
+  q: z.string().trim().min(1).max(120),
+  limit: z.coerce.number().int().min(1).max(10).default(5),
+});
+export type SearchQueryInput = z.infer<typeof searchQuerySchema>;
+
 export * from "./ai";

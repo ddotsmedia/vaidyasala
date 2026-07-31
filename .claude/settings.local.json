@@ -51,7 +51,20 @@
       "Bash(pnpm --filter @vaidyasala/web e2e:install)",
       "Bash(pnpm --filter @vaidyasala/web e2e)",
       "Bash(curl -s 'https://api.github.com/repos/ddotsmedia/vaidyasala/actions/runs?per_page=2&event=push' -o __TRACKED_VAR__/r5.json)",
-      "Bash(node -e 'const j=JSON.parse\\(require\\(\"fs\"\\).readFileSync\\(process.argv[1],\"utf8\"\\)\\);for\\(const r of j.workflow_runs\\)console.log\\([r.name,r.head_sha.slice\\(0,7\\),r.status,r.conclusion||\"-\"].join\\(\" | \"\\)\\);' __TRACKED_VAR__/r5.json)"
+      "Bash(node -e 'const j=JSON.parse\\(require\\(\"fs\"\\).readFileSync\\(process.argv[1],\"utf8\"\\)\\);for\\(const r of j.workflow_runs\\)console.log\\([r.name,r.head_sha.slice\\(0,7\\),r.status,r.conclusion||\"-\"].join\\(\" | \"\\)\\);' __TRACKED_VAR__/r5.json)",
+      "Bash(curl -s http://localhost:57700/health)",
+      "Bash(node -e 'let d=\"\";process.stdin.on\\(\"data\",c=>d+=c\\).on\\(\"end\",\\(\\)=>{const j=JSON.parse\\(d\\);for\\(const r of j.results\\)console.log\\(r.indexUid, r.hits.map\\(h=>h.titleMl\\).join\\(\" | \"\\)\\)}\\)')",
+      "Bash(export DATABASE_URL=\"postgresql://vaidyasala:vaidyasala@localhost:55432/vaidyasala?schema=public\" REDIS_URL=\"redis://localhost:56379\" NEXT_PUBLIC_SITE_URL=\"http://localhost:3000\" MEILI_URL=\"http://localhost:57700\")",
+      "Bash(export MEILI_MASTER_KEY=\"devMasterKeyChangeMe0000000000000000\")",
+      "Bash(curl -s -o /dev/null -w '%{http_code}\\\\n' -H 'Authorization: Bearer __TRACKED_VAR__' http://localhost:57700/indexes)",
+      "Bash(pnpm search:reindex)",
+      "Bash(MEILI_MASTER_KEY=\"devMasterKeyChangeMe0000000000000000\" node -e 'console.log\\(\"node sees MEILI len:\", \\(process.env.MEILI_MASTER_KEY||\"\"\\).length\\)')",
+      "Bash(powershell.exe -NoProfile -Command 'Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue; Write-Output \"killed $_\" }')",
+      "Bash(curl -s -o /dev/null -w \"port3000 after kill: %{http_code}\\\\n\" http://localhost:3000/api/health)",
+      "Bash(pkill -f \"next start\")",
+      "Bash(kill 295)",
+      "Bash(printf -- '- [2026-07-31] Search \\(4A\\): centralized the Meilisearch module in packages/core/search \\(config/index-settings, article/topic/faq mappers, script classifier, SearchClient\\); client is server-only via the \"@vaidyasala/core/search/client\" subpath so client bundles never pull meilisearch. Worker meili port + reindex + /api/v1/search all share it.\\\\n- [2026-07-31] reindex.ts lives in infra/scripts and is run from repo root \\(root search:reindex + @vaidyasala/db,@vaidyasala/core added as root devDeps\\) because Node ESM resolves bare specifiers from the importing file location — infra/ has no node_modules, so the packages must link into the repo-root node_modules.\\\\n- [2026-07-31] Search degrades gracefully when MEILI_MASTER_KEY is absent \\(searchClient null → empty grouped results, query still logged\\), so CI needs no Meilisearch service.\\\\n')",
+      "Bash(git commit *)"
     ],
     "additionalDirectories": [
       "\\tmp"

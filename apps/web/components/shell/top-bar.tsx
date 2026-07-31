@@ -3,9 +3,9 @@
 import * as React from "react";
 import Link from "next/link";
 import { Search } from "lucide-react";
-import { Button, SubscribeCTA, type SearchGroup } from "@vaidyasala/ui";
+import { Button, SubscribeCTA } from "@vaidyasala/ui";
 import { ThemeSwitcher } from "./theme-switcher";
-import { SearchOmniboxLazy } from "./search-omnibox-lazy";
+import { SearchController } from "../search/search-controller";
 
 const CHANNEL_URL = "https://www.youtube.com/@vaidyasala";
 
@@ -16,7 +16,6 @@ const CHANNEL_URL = "https://www.youtube.com/@vaidyasala";
 export function TopBar() {
   const [open, setOpen] = React.useState(false);
   const [everOpened, setEverOpened] = React.useState(false);
-  const [query, setQuery] = React.useState("");
 
   const openSearch = React.useCallback(() => {
     setEverOpened(true);
@@ -34,9 +33,6 @@ export function TopBar() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
-
-  // Wired to Meilisearch in Phase 4; empty groups keep the shell honest for now.
-  const groups: SearchGroup[] = [];
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-bg/85 backdrop-blur">
@@ -75,15 +71,7 @@ export function TopBar() {
         </nav>
       </div>
 
-      {everOpened ? (
-        <SearchOmniboxLazy
-          open={open}
-          onOpenChange={setOpen}
-          query={query}
-          onQueryChange={setQuery}
-          groups={groups}
-        />
-      ) : null}
+      {everOpened ? <SearchController open={open} onOpenChange={setOpen} /> : null}
     </header>
   );
 }

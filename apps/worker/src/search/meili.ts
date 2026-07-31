@@ -1,4 +1,4 @@
-import { MeiliSearch } from "meilisearch";
+import { SearchClient } from "@vaidyasala/core/search/client";
 import type { VideoSearchDoc } from "@vaidyasala/core/search";
 import { env } from "../env";
 
@@ -7,14 +7,21 @@ export interface MeiliPort {
   upsertVideos(docs: VideoSearchDoc[]): Promise<void>;
 }
 
-/** Build a Meili client from env, or null if no master key (index config = Phase 4). */
+/**
+ * Build a Meili port from env, or null if no master key. Backed by the shared
+ * core SearchClient so index settings (§14 weights/synonyms) stay in one place;
+ * indexes are ensured once, lazily, on the first upsert.
+ */
 export function createMeiliFromEnv(): MeiliPort | null {
-  if (!env.MEILI_MASTER_KEY) return null;
-  const client = new MeiliSearch({ host: env.MEILI_URL, apiKey: env.MEILI_MASTER_KEY });
+  const client = SearchClient.fromEnv(env);
+  if (!client) return null;
+  let ensured: Promise<void> | null = null;
   return {
     async upsertVideos(docs) {
       if (docs.length === 0) return;
-      await client.index("videos").addDocuments(docs, { primaryKey: "id" });
+      ensured ??= client.ensureIndexes();
+      await ensured;
+      await client.upsertVideos(docs);
     },
   };
 }

@@ -20,6 +20,10 @@ const envSchema = z.object({
   // Email (Resend). Absent ⇒ newsletter runs in fixture mode (logs, no send).
   RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().default("Vaidyasala <newsletter@vaidyasala.live>"),
+
+  // Meilisearch (§14). Absent master key ⇒ search returns empty (still logged).
+  MEILI_URL: z.string().url().default("http://localhost:57700"),
+  MEILI_MASTER_KEY: z.string().optional(),
 });
 
 export const env = envSchema.parse({
@@ -33,4 +37,6 @@ export const env = envSchema.parse({
   BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
   RESEND_API_KEY: process.env.RESEND_API_KEY,
   EMAIL_FROM: process.env.EMAIL_FROM,
+  MEILI_URL: process.env.MEILI_URL,
+  MEILI_MASTER_KEY: process.env.MEILI_MASTER_KEY,
 });

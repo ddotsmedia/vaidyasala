@@ -10,3 +10,18 @@ export {
   type VideoSearchDoc,
   type VideoSearchSource,
 } from "./mapper";
+
+// Pure config + non-video mappers + query script classifier (browser-safe).
+// The Meilisearch client is server-only — import it from "@vaidyasala/core/search/client".
+export {
+  INDEX_SETTINGS,
+  buildArticleDoc,
+  buildTopicDoc,
+  buildFaqDoc,
+  classifyScript,
+  type IndexSettings,
+  type ArticleSearchDoc,
+  type TopicSearchDoc,
+  type FaqSearchDoc,
+  type QueryScript,
+} from "./config";

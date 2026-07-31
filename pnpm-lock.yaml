@@ -8,12 +8,21 @@ importers:
 
   .:
     devDependencies:
+      '@vaidyasala/core':
+        specifier: workspace:*
+        version: link:packages/core
+      '@vaidyasala/db':
+        specifier: workspace:*
+        version: link:packages/db
       dotenv-cli:
         specifier: ^7.4.4
         version: 7.4.4
       prettier:
         specifier: ^3.3.3
         version: 3.9.5
+      tsx:
+        specifier: ^4.19.2
+        version: 4.23.1
       turbo:
         specifier: ^2.3.0
         version: 2.10.5
@@ -166,6 +175,9 @@ importers:
       '@anthropic-ai/sdk':
         specifier: ^0.68.0
         version: 0.68.0(zod@3.25.76)
+      meilisearch:
+        specifier: ^0.45.0
+        version: 0.45.0
       zod:
         specifier: ^3.23.8
         version: 3.25.76

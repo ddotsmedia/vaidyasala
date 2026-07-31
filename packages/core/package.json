@@ -10,7 +10,8 @@
     "./content": "./src/content/index.ts",
     "./validation": "./src/validation/index.ts",
     "./queue": "./src/queue/index.ts",
-    "./seo": "./src/seo/index.ts"
+    "./seo": "./src/seo/index.ts",
+    "./search/client": "./src/search/client.ts"
   },
   "scripts": {
     "lint": "eslint .",
@@ -19,7 +20,8 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "meilisearch": "^0.45.0"
   },
   "devDependencies": {
     "@types/node": "^22.9.0",
