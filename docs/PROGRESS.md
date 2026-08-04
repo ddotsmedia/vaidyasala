@@ -1,39 +1,42 @@
 # PROGRESS — Vaidyasala
 
 ## Current phase
-Phase 4 — Search (4A ✓ · next 4B)
+Phase 4 — Search ✓ COMPLETE (4A + 4B) · next: Phase 5 (Engagement Loop)
 
 ## Done
-- ✓ Phase 0-3 complete (foundation/CI, ingest+AI pipeline, public core+SEO+perf, all CI green)
-- ✓ 4A Meilisearch + omnibox (§14 lexical, §2 SynonymMapping/SearchQueryLog):
-  - packages/core/search: config.ts (§14 index settings — searchable weights title>keywords>
-    summary>chapters>transcript, filterable/sortable), article/topic/faq mappers, classifyScript
-    (malayalam/latin/manglish), client.ts SearchClient (ensureIndexes/upsert*/clearAll/
-    syncSynonyms/multi-search grouped) — server-only via ./search/client subpath
-  - infra/scripts/reindex.ts (root `pnpm search:reindex`): rebuild all 4 indexes from Postgres +
-    apply settings + sync approved SynonymMapping → verified rebuilds from empty
-  - worker jobs/index-search + meili port refactored onto the shared SearchClient
-  - GET /api/v1/search (Zod searchQuerySchema, in-memory rate-limit 30/10s, grouped results,
-    SearchQueryLog write w/ script detection); graceful empty when Meili unconfigured
-  - SearchController (debounced fetch, voice ml-IN, keyboard nav) wired into TopBar omnibox;
-    /search deep-link page (noindex)
-- ✓ Exit checks: typecheck ✓ lint ✓ test ✓ (58 tests); reindex from empty ✓; ML "തൈറോയ്ഡ്"
-    + EN "diabetes" return grouped Videos/Articles/Topics/FAQs; synonym "sugar"→diabetes;
-    zero-result logged; SearchQueryLog rows written w/ correct script.
+- ✓ Phase 0-3 complete (foundation/CI, ingest+AI pipeline, public core+SEO+perf)
+- ✓ 4A Meilisearch + omnibox (index config, mappers, reindex, synonym sync, GET /api/v1/search,
+    SearchController + /search) — CI green
+- ✓ 4B Manglish + semantic + AI answers (§14, §6.4):
+  - core/search/manglish.ts: rule-based Mozhi/ISO-15919 transliterator (top-k) + resolveManglish
+    (SynonymMapping-first) + 30-query health fixture; searchWithManglish fallback in the route
+  - core/search/semantic.ts: isQuestionShaped, shouldRunSemantic, rrfMerge (RRF), ANSWER_MIN_SCORE
+  - lib/answer.ts: retrieveSegments (lexical token-overlap over candidate videos ⊕ pgvector cosine
+    when EMBED key, RRF-fused; per-content-token candidate union to beat Meili trailing-word drop);
+    composeAnswer (Claude live / extractive fixture, both grounded); nearestTopics
+  - POST /api/v1/ai/answer: SSE (precompute→pull, avoids pipe race), retrieval-only, cited
+    [videoId,startSec], threshold gate → honest no-answer + nearest topics + gap log
+  - AnswerPanel (client SSE consumer, playable timestamp chips) on /search for question-shaped q
+  - admin /admin/search-analytics: top queries, content-gap (zero-result) report, synonym approval
+    queue (approve/reject server actions + Meili re-sync)
+  - web typecheck runs `next typegen` first (routes.d.ts fresh for new routes in CI)
+- ✓ Exit checks (verified live, fixture mode): "prameham"→diabetes (3 cites); EN "how to control
+    cholesterol?"→kolesterol-kurakkan (4 cites); ML "പ്രമേഹം എങ്ങനെ…?"→41 tokens/6 cites; unrelated
+    "gearbox"→honest no-answer + topics; zero-result logged to SearchQueryLog + visible in admin;
+    typecheck ✓ lint ✓ test ✓ (75: core 53, web 6, worker 16); reindex-from-empty ✓.
 
 ## Next step
-Phase 4B — Manglish + semantic + AI answers (§14 manglish/semantic/AI-answer, §6.4):
-core/search/manglish (Mozhi/ISO-15919 transliterator + top-k + SynonymMapping lookup, 30-query
-fixture); pgvector segment search (HNSW cosine) + RRF hybrid trigger rules; POST /api/v1/ai/answer
-(embed→top-12→rerank→threshold gate→Claude cites [videoId,startSec]→SSE, else honest no-answer +
-gap log); admin /admin/search-analytics (top queries, zero-result report, synonym approval queue).
+Phase 5 — Engagement Loop (§6.1-6.3, §2 WatchProgress/viewerKey, §13): anonymous viewerKey cookie
++ POST /api/v1/progress beacon + /continue + ContinueWatchingRail + resume-at-position; watch-next
+auto-advance; SubscribeCTA final wiring (4 variants, live sub count, UTM); comments (authed, PENDING,
+/admin/comments moderation, Turnstile); newsletter weekly assembly job + Resend batch; PWA
+(manifest, service worker offline shell, install prompt).
 
 ## Blockers
-- AI/ASR/YouTube/R2/INDEXNOW/RESEND keys absent → fixtures/MinIO/fixture-mode; live BLOCKED.
-  4B AI-answer runs against fixtures (no ANTHROPIC/EMBED keys); live composition BLOCKED.
-- Docker Desktop daemon is UNSTABLE here (flaps every few min) — restart + `docker compose up -d`
-  as needed; dev Meili key = devMasterKeyChangeMe0000000000000000.
-- Build/search need env exported (BOM in .env): DATABASE_URL=postgresql://vaidyasala:vaidyasala@
-  localhost:55432/vaidyasala?schema=public, MEILI_URL=http://localhost:57700, MEILI_MASTER_KEY=…
-  Kill stale `next start` on :3000 before restarting (EADDRINUSE binds silently to old env).
-- 2FA deferred to Phase 6. Local Lighthouse trace bug (perf/LCP NaN); CI Linux measures fine.
+- AI/ASR/YouTube/R2/INDEXNOW/RESEND/ANTHROPIC/EMBED/Turnstile keys absent → fixtures/MinIO/
+  fixture-mode; live composition + sends BLOCKED (LAW 1).
+- Docker Desktop daemon UNSTABLE here (flaps every few min); dev Meili key =
+  devMasterKeyChangeMe0000000000000000. Kill stale `next start` on :3000 before restart (EADDRINUSE
+  silently binds old env). .env repeatedly rewritten with wrong creds by a linter — export explicit:
+  DATABASE_URL=postgresql://vaidyasala:vaidyasala@localhost:55432/vaidyasala?schema=public etc.
+- 2FA→Phase 6. Local Lighthouse trace bug (perf/LCP NaN); CI Linux measures fine.
