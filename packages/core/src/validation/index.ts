@@ -52,4 +52,21 @@ export const aiAnswerSchema = z.object({
 });
 export type AiAnswerInput = z.infer<typeof aiAnswerSchema>;
 
+/** Watch-progress beacon (§6.1/§13 POST /api/v1/progress). */
+export const progressInputSchema = z.object({
+  videoId: z.string().min(1).max(64),
+  positionSec: z.coerce.number().int().nonnegative().max(86_400),
+  completed: z.coerce.boolean().optional().default(false),
+});
+export type ProgressInput = z.infer<typeof progressInputSchema>;
+
+/** Comment submission (§13 POST /api/v1/comments). */
+export const commentInputSchema = z.object({
+  videoId: z.string().min(1).max(64),
+  body: z.string().trim().min(2).max(2000),
+  parentId: z.string().max(64).optional(),
+  turnstileToken: z.string().optional(),
+});
+export type CommentInput = z.infer<typeof commentInputSchema>;
+
 export * from "./ai";

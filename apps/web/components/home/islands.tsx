@@ -1,29 +1,17 @@
-import Link from "next/link";
 import { RelatedRail } from "@vaidyasala/ui";
 import { getRecommended } from "@/lib/feeds";
+import { getContinueWatching } from "@/lib/progress";
 import { LinkedRail } from "./video-grid";
+import { ContinueWatchingRail } from "./continue-rail";
 
 /**
- * Continue-watching island (§1.1). Personalization streams in via Suspense —
- * WatchProgress lands in Phase 5, so signed-out shows the empty state.
+ * Continue-watching island (§1.1/§6.3). Personalization streams in via Suspense;
+ * renders nothing when the viewer has no in-progress videos (§11 static shell).
  */
 export async function ContinueIsland() {
-  // Placeholder until WatchProgress (Phase 5): no device/user progress yet.
-  const items: never[] = [];
-  if (items.length === 0) {
-    return (
-      <section className="flex flex-col gap-2">
-        <h2 className="text-lg font-semibold">Continue watching</h2>
-        <p className="text-text-dim text-sm">
-          Start a video and it will resume here.{" "}
-          <Link href="/latest" className="text-brand hover:underline">
-            Browse latest →
-          </Link>
-        </p>
-      </section>
-    );
-  }
-  return null;
+  const items = await getContinueWatching(1);
+  if (items.length === 0) return null;
+  return <ContinueWatchingRail />;
 }
 
 /** Recommended island (§1.1) — streamed personalization (quality-ranked for now). */

@@ -40,6 +40,7 @@ export const OPS_JOBS = {
   ytPoll: "yt-poll",
   statsRefresh: "stats-refresh",
   seoPing: "seo-ping",
+  newsletterAssemble: "newsletter-assemble",
 } as const;
 export type OpsJob = (typeof OPS_JOBS)[keyof typeof OPS_JOBS];
 

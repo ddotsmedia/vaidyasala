@@ -19,4 +19,10 @@ export async function registerCron(): Promise<void> {
     { every: 60 * 60 * 1000 },
     { name: OPS_JOBS.statsRefresh, data: {} },
   );
+  // Weekly newsletter assembly → NewsletterIssue draft (§9.3, Mondays 06:00).
+  await ops.upsertJobScheduler(
+    "cron:newsletter-assemble",
+    { pattern: "0 6 * * 1" },
+    { name: OPS_JOBS.newsletterAssemble, data: {} },
+  );
 }

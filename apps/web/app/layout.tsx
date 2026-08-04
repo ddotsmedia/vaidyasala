@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Toaster } from "@vaidyasala/ui";
 import { fontVariables } from "@/lib/fonts";
 import { ThemeScript } from "@/components/shell/theme-switcher";
+import { Pwa } from "@/components/pwa/pwa";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -25,6 +26,7 @@ export default function RootLayout({
       <body className="min-h-dvh antialiased">
         {children}
         <Toaster />
+        <Pwa />
       </body>
     </html>
   );

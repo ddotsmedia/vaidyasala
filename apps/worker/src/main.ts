@@ -23,6 +23,7 @@ import { createIngestProcessor } from "./jobs/ingest";
 import { createStatsRefreshProcessor } from "./jobs/stats-refresh";
 import { createYtPollProcessor } from "./jobs/yt-poll";
 import { createSeoPingProcessor } from "./jobs/seo-ping";
+import { createNewsletterAssembleProcessor } from "./jobs/newsletter-assemble";
 import { seoPingInputSchema } from "@vaidyasala/core/queue";
 import { enqueueIngest } from "./enqueue";
 
@@ -81,6 +82,11 @@ async function main(): Promise<void> {
     indexNowKey: env.INDEXNOW_KEY,
     log,
   });
+  const newsletterAssemble = createNewsletterAssembleProcessor({
+    prisma,
+    siteUrl: env.SITE_URL,
+    log,
+  });
 
   const workers: Worker[] = [
     new Worker(QUEUE_NAMES.ingest, (job) => runMirrored(prisma, job, () => ingest(job.data)), {
@@ -95,6 +101,7 @@ async function main(): Promise<void> {
           if (job.name === OPS_JOBS.statsRefresh) r = await statsRefresh();
           else if (job.name === OPS_JOBS.seoPing)
             r = await seoPing(seoPingInputSchema.parse(job.data));
+          else if (job.name === OPS_JOBS.newsletterAssemble) r = await newsletterAssemble();
           else r = await ytPoll();
           return { costUsd: r.costUsd };
         }),

@@ -80,7 +80,14 @@
       "Bash(curl -s \"http://localhost:3000/api/v1/search?q=how%20to%20control%20cholesterol%3F\")",
       "Bash(node -e 'let d=\"\";process.stdin.on\\(\"data\",c=>d+=c\\).on\\(\"end\",\\(\\)=>{const j=JSON.parse\\(d\\);console.log\\(\"total\",j.total,\"videos:\",\\(j.groups.find\\(g=>g.heading===\"Videos\"\\)||{items:[]}\\).items.map\\(i=>i.label\\).join\\(\" | \"\\)\\)}\\)')",
       "Bash(curl -s \"http://localhost:3000/api/v1/search?q=cholesterol\")",
-      "Bash(node -e 'let d=\"\";process.stdin.on\\(\"data\",c=>d+=c\\).on\\(\"end\",\\(\\)=>{const j=JSON.parse\\(d\\);const v=\\(j.groups.find\\(g=>g.heading===\"Videos\"\\)||{items:[]}\\);console.log\\(\"videos:\",v.items.map\\(i=>i.id\\).join\\(\",\"\\)\\)}\\)')"
+      "Bash(node -e 'let d=\"\";process.stdin.on\\(\"data\",c=>d+=c\\).on\\(\"end\",\\(\\)=>{const j=JSON.parse\\(d\\);const v=\\(j.groups.find\\(g=>g.heading===\"Videos\"\\)||{items:[]}\\);console.log\\(\"videos:\",v.items.map\\(i=>i.id\\).join\\(\",\"\\)\\)}\\)')",
+      "Bash(curl -s __TRACKED_VAR__/actions/runs?per_page=8)",
+      "Bash(node -e 'let d=\"\";process.stdin.on\\(\"data\",c=>d+=c\\).on\\(\"end\",\\(\\)=>{const j=JSON.parse\\(d\\);for\\(const r of j.workflow_runs.filter\\(r=>r.name===\"CI\"\\).slice\\(0,2\\)\\)console.log\\(r.head_sha.slice\\(0,7\\),r.status,r.conclusion||\"-\"\\)}\\)')",
+      "Bash(sed -i '/eslint-disable-next-line react-hooks\\\\/exhaustive-deps/d' apps/web/components/video/progress-beacon.tsx)",
+      "Bash(perl -ni -e 'print unless /eslint-disable-next-line react-hooks\\\\/exhaustive-deps/' apps/web/components/video/progress-beacon.tsx)",
+      "Bash(pnpm --filter @vaidyasala/core typecheck)",
+      "Bash(export DATABASE_URL=\"postgresql://vaidyasala:vaidyasala@localhost:55432/vaidyasala?schema=public\" REDIS_URL=\"redis://localhost:56379\" NEXT_PUBLIC_SITE_URL=\"http://localhost:3000\" MEILI_URL=\"http://localhost:57700\" MEILI_MASTER_KEY=\"devMasterKeyChangeMe0000000000000000\" CI=1)",
+      "Bash(pkill -f \"playwright\")"
     ],
     "additionalDirectories": [
       "\\tmp"

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { RelatedRail, VideoCard, ShareSheet, Button } from "@vaidyasala/ui";
@@ -12,6 +12,8 @@ import { ChapterList } from "./chapter-list";
 import { TranscriptView } from "./transcript-view";
 import { FaqAccordion } from "./faq-accordion";
 import { LazyInView } from "./lazy-in-view";
+import { ProgressBeacon } from "./progress-beacon";
+import { CommentSection } from "./comment-section";
 
 // Interaction/scroll-only islands — split into their own chunks and mounted only
 // when needed (§3D). Motion lives only in these three, so it leaves the initial
@@ -74,9 +76,39 @@ function useKeyboardControls(): void {
   }, [activated, isPlaying, currentTime, play, pause, seekTo, adjustVolume, toggleMute]);
 }
 
+/**
+ * Resolve the resume position client-side so /watch stays static (§11): the URL
+ * ?t= (from a Continue-watching link) wins; otherwise fetch the saved position
+ * for this device/user. Returns null until known so the player waits.
+ */
+function useResumeSec(videoId: string): number | null {
+  const [resume, setResume] = useState<number | null>(null);
+
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get("t");
+    if (t !== null) {
+      setResume(Math.max(0, Number(t) || 0));
+      return;
+    }
+    let alive = true;
+    fetch(`/api/v1/progress?videoId=${encodeURIComponent(videoId)}`)
+      .then((r) => (r.ok ? r.json() : { positionSec: 0 }))
+      .then((d: { positionSec?: number }) => {
+        if (alive) setResume(Math.max(0, d.positionSec ?? 0));
+      })
+      .catch(() => alive && setResume(0));
+    return () => {
+      alive = false;
+    };
+  }, [videoId]);
+
+  return resume;
+}
+
 function WatchLayout({ data }: { data: WatchData }) {
   const heroRef = useRef<HTMLDivElement>(null);
   const { activated } = usePlayer();
+  const resumeSec = useResumeSec(data.id) ?? undefined;
   useKeyboardControls();
   const shareUrl = `${SITE_URL}/watch/${data.slug}`;
   const next = data.related[0]
@@ -98,7 +130,9 @@ function WatchLayout({ data }: { data: WatchData }) {
               videoId={data.id}
               title={data.titleMl}
               thumbnailUrl={data.thumbnailUrl}
+              startSec={resumeSec}
             />
+            <ProgressBeacon videoId={data.id} />
             {/* End-of-video overlay — only relevant once playback has started. */}
             {activated ? <WatchNextCard next={next} videoId={data.id} /> : null}
           </div>
@@ -138,6 +172,9 @@ function WatchLayout({ data }: { data: WatchData }) {
           <KeyTakeaways takeaways={data.takeaways} />
           <TranscriptView segments={data.segments} />
           <FaqAccordion faqs={data.faqs} />
+          <LazyInView minHeight={120}>
+            <CommentSection videoId={data.id} />
+          </LazyInView>
         </div>
 
         <aside className="flex flex-col gap-6">
