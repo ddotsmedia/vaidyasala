@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { validation } from "@vaidyasala/core";
-import { classifyScript } from "@vaidyasala/core/search";
 import { prisma } from "@vaidyasala/db";
-import { searchClient } from "@/lib/search";
+import { searchWithManglish } from "@/lib/search";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -29,9 +28,7 @@ export async function GET(req: Request): Promise<NextResponse> {
   }
   const { q, limit } = parsed.data;
 
-  const results = searchClient
-    ? await searchClient.search(q, limit)
-    : { script: classifyScript(q), groups: [], total: 0 };
+  const results = await searchWithManglish(q, limit);
 
   // Fire-and-forget query log (never block the response).
   void prisma.searchQueryLog

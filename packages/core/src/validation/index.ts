@@ -46,4 +46,10 @@ export const searchQuerySchema = z.object({
 });
 export type SearchQueryInput = z.infer<typeof searchQuerySchema>;
 
+/** AI answer request (§6.4/§14 POST /api/v1/ai/answer). */
+export const aiAnswerSchema = z.object({
+  question: z.string().trim().min(3).max(300),
+});
+export type AiAnswerInput = z.infer<typeof aiAnswerSchema>;
+
 export * from "./ai";

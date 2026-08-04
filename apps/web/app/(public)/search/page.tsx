@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { Route } from "next";
+import { isQuestionShaped } from "@vaidyasala/core/search";
 import { searchClient } from "@/lib/search";
+import { AnswerPanel } from "@/components/search/answer-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +37,8 @@ export default async function SearchPage({
           </p>
         )}
       </div>
+
+      {query && isQuestionShaped(query) ? <AnswerPanel question={query} /> : null}
 
       {results && results.total === 0 ? (
         <div className="border-border rounded-xl border p-8 text-center">

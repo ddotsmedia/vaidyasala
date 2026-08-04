@@ -24,6 +24,11 @@ const envSchema = z.object({
   // Meilisearch (§14). Absent master key ⇒ search returns empty (still logged).
   MEILI_URL: z.string().url().default("http://localhost:57700"),
   MEILI_MASTER_KEY: z.string().optional(),
+
+  // AI answer (§6.4/§14). Absent ⇒ fixture mode: embeddings skipped (lexical
+  // retrieval) and answers are extractive from retrieved segments.
+  ANTHROPIC_API_KEY: z.string().optional(),
+  EMBED_API_KEY: z.string().optional(),
 });
 
 export const env = envSchema.parse({
@@ -39,4 +44,6 @@ export const env = envSchema.parse({
   EMAIL_FROM: process.env.EMAIL_FROM,
   MEILI_URL: process.env.MEILI_URL,
   MEILI_MASTER_KEY: process.env.MEILI_MASTER_KEY,
+  ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+  EMBED_API_KEY: process.env.EMBED_API_KEY,
 });
