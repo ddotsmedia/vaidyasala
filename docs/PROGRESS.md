@@ -1,42 +1,42 @@
 # PROGRESS — Vaidyasala
 
 ## Current phase
-Phase 4 — Search ✓ COMPLETE (4A + 4B) · next: Phase 5 (Engagement Loop)
+Phase 5 — Engagement Loop ✓ COMPLETE · next: Phase 6 (Full Admin & Ops)
 
 ## Done
-- ✓ Phase 0-3 complete (foundation/CI, ingest+AI pipeline, public core+SEO+perf)
-- ✓ 4A Meilisearch + omnibox (index config, mappers, reindex, synonym sync, GET /api/v1/search,
-    SearchController + /search) — CI green
-- ✓ 4B Manglish + semantic + AI answers (§14, §6.4):
-  - core/search/manglish.ts: rule-based Mozhi/ISO-15919 transliterator (top-k) + resolveManglish
-    (SynonymMapping-first) + 30-query health fixture; searchWithManglish fallback in the route
-  - core/search/semantic.ts: isQuestionShaped, shouldRunSemantic, rrfMerge (RRF), ANSWER_MIN_SCORE
-  - lib/answer.ts: retrieveSegments (lexical token-overlap over candidate videos ⊕ pgvector cosine
-    when EMBED key, RRF-fused; per-content-token candidate union to beat Meili trailing-word drop);
-    composeAnswer (Claude live / extractive fixture, both grounded); nearestTopics
-  - POST /api/v1/ai/answer: SSE (precompute→pull, avoids pipe race), retrieval-only, cited
-    [videoId,startSec], threshold gate → honest no-answer + nearest topics + gap log
-  - AnswerPanel (client SSE consumer, playable timestamp chips) on /search for question-shaped q
-  - admin /admin/search-analytics: top queries, content-gap (zero-result) report, synonym approval
-    queue (approve/reject server actions + Meili re-sync)
-  - web typecheck runs `next typegen` first (routes.d.ts fresh for new routes in CI)
-- ✓ Exit checks (verified live, fixture mode): "prameham"→diabetes (3 cites); EN "how to control
-    cholesterol?"→kolesterol-kurakkan (4 cites); ML "പ്രമേഹം എങ്ങനെ…?"→41 tokens/6 cites; unrelated
-    "gearbox"→honest no-answer + topics; zero-result logged to SearchQueryLog + visible in admin;
-    typecheck ✓ lint ✓ test ✓ (75: core 53, web 6, worker 16); reindex-from-empty ✓.
+- ✓ Phase 0-4 complete (foundation/CI, ingest+AI pipeline, public core+SEO+perf, search 4A+4B)
+- ✓ Phase 5 Engagement Loop (§6.1-6.3, §2 WatchProgress, §13):
+  - WatchProgress: lib/viewer (getViewerKey "u:{id}"/"a:{uuid}" cookie + mergeAnonProgress on
+    login, furthest-position), POST/GET /api/v1/progress beacon, lib/progress (getContinueWatching,
+    getResumePosition); ProgressBeacon (10s + pagehide sendBeacon); resume-at-position resolved
+    client-side (URL ?t= then GET) to keep /watch static
+  - ContinueWatchingRail on home island + /continue page (resume-linked, progress bars)
+  - Watch-next 8s cancellable auto-advance (pre-existing WatchNextCard) + SubscribeCTA variants +
+    /subscribe (pre-existing) — subscribe_click at 75%, sub_confirmation UTM
+  - Comments: POST /api/v1/comments (authed VIEWER+, PENDING default, Turnstile verify graceful),
+    GET approved; CommentSection on watch page; /admin/comments moderation (approve/reject/spam) +
+    nav; commentInputSchema
+  - Newsletter: worker jobs/newsletter-assemble.ts (weekly cron Mon 06:00, §9.3) → NewsletterIssue
+    draft from Enrichment.newsletterMd; GET /api/v1/newsletter/unsubscribe
+  - PWA: app/manifest.ts (installable, SVG icon), public/sw.js (network-first nav + rolling 10-page
+    cache + /offline), /offline page, Pwa install-prompt (after 2nd visit) mounted in root layout
+- ✓ Exit checks (verified live): POST progress→204+cookie; GET resume→{positionSec:120};
+    continue-watching survives reload (same cookie); comment PENDING hidden→APPROVED shown;
+    POST comment unauth→401; newsletter draft assembles from seed enrichment (ML subject+watch
+    links+unsubscribe); manifest/sw/offline 200; typecheck ✓ lint ✓ test ✓ (75) e2e ✓ (5).
 
 ## Next step
-Phase 5 — Engagement Loop (§6.1-6.3, §2 WatchProgress/viewerKey, §13): anonymous viewerKey cookie
-+ POST /api/v1/progress beacon + /continue + ContinueWatchingRail + resume-at-position; watch-next
-auto-advance; SubscribeCTA final wiring (4 variants, live sub count, UTM); comments (authed, PENDING,
-/admin/comments moderation, Turnstile); newsletter weekly assembly job + Resend batch; PWA
-(manifest, service worker offline shell, install prompt).
+Phase 6 — Full Admin & Ops (§7.6, §9.3, §10, §4 Tier 3): /admin/articles (MDX editor + regenerate
+w/ EnrichmentDiff), /admin/topics + /admin/playlists CRUD, /admin/media (R2 browser), /admin/settings
+(trusted-mode auto-publish §8.3), /admin/newsletter (issue list + approve → Resend batch); SEO
+dashboard (seo-pull GSC+CrUX → SeoSnapshot, /admin/seo, link-crawl + search-consistency nightly);
+funnel analytics /admin/analytics (view→play→75%→sub-click, leaderboard, AI cost per video);
+AuditLog on every admin mutation (mostly done) + 2FA (TOTP) for EDITOR/ADMIN; infra/scripts/backup.sh
++ restore.sh; observability compose profile (prometheus/grafana/loki/uptime-kuma) + alerts.
 
 ## Blockers
-- AI/ASR/YouTube/R2/INDEXNOW/RESEND/ANTHROPIC/EMBED/Turnstile keys absent → fixtures/MinIO/
-  fixture-mode; live composition + sends BLOCKED (LAW 1).
-- Docker Desktop daemon UNSTABLE here (flaps every few min); dev Meili key =
-  devMasterKeyChangeMe0000000000000000. Kill stale `next start` on :3000 before restart (EADDRINUSE
-  silently binds old env). .env repeatedly rewritten with wrong creds by a linter — export explicit:
-  DATABASE_URL=postgresql://vaidyasala:vaidyasala@localhost:55432/vaidyasala?schema=public etc.
-- 2FA→Phase 6. Local Lighthouse trace bug (perf/LCP NaN); CI Linux measures fine.
+- AI/ASR/YouTube/R2/INDEXNOW/RESEND/ANTHROPIC/EMBED/Turnstile/GSC keys absent → fixtures/MinIO/
+  fixture-mode; live sends + external pulls BLOCKED (LAW 1).
+- Docker daemon UNSTABLE here (flaps); dev Meili key=devMasterKeyChangeMe0000000000000000. Kill stale
+  `next start` on :3000 before restart. .env auto-rewritten wrong by linter — export explicit creds.
+- Local Lighthouse trace bug (perf/LCP NaN); CI Linux measures fine. Phase 7 = human-gated VPS deploy.
