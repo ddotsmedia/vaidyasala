@@ -16,8 +16,9 @@ CANONICAL = https://vaidhyasala.com
 
 ## VPS (needed at Phase 7) — ⚠️ SHARED SERVER
 VPS_IP = 194.164.151.202
-VPS_USER = <ssh user>
-VPS_SSH_KEY = <local path to private key>
+VPS_USER = root
+VPS_SSH_KEY = C:\Users\Owner\.ssh\id_ed25519   # no id_rsa on this machine; ed25519 is the only key
+                                               # present and its host key for VPS_IP is in known_hosts
 DOCKER = already installed — never reinstall/upgrade it
 ⚠️ SHARED = TRUE — 10 LIVE WEBSITES run on this server.
    NOTHING may be stopped, restarted, reconfigured, or port-conflicted.
