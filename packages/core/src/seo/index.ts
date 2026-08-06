@@ -49,6 +49,6 @@ export function buildOgSvg({ titleMl, badgeMl }: OgCardInput): string {
   <rect x="0" y="0" width="1200" height="10" fill="#16a34a"/>
   <text x="80" y="120" font-family="sans-serif" font-size="34" fill="#16a34a">${badge}</text>
   <text x="80" y="300" font-family="sans-serif" font-size="72" font-weight="700" fill="#f8fafc">${tspans}</text>
-  <text x="80" y="560" font-family="sans-serif" font-size="30" fill="#94a3b8">vaidyasala.live</text>
+  <text x="80" y="560" font-family="sans-serif" font-size="30" fill="#94a3b8">vaidhyasala.com</text>
 </svg>`;
 }

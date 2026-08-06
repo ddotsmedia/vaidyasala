@@ -46,7 +46,7 @@ export async function sendIssue(id: string): Promise<ActionResult> {
         headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
         body: JSON.stringify(
           subscribers.slice(0, 100).map((s) => ({
-            from: process.env.EMAIL_FROM ?? "Vaidyasala <newsletter@vaidyasala.live>",
+            from: process.env.EMAIL_FROM ?? "Vaidyasala <newsletter@vaidhyasala.com>",
             to: s.email,
             subject: issue.subjectMl,
             text: issue.bodyMd.replace("{{token}}", s.token),

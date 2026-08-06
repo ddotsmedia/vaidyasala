@@ -230,7 +230,7 @@ export default function StyleguidePage() {
         </Section>
 
         <Section title="ShareSheet & SearchOmnibox">
-          <ShareSheet url="https://vaidyasala.live/watch/demo" title="പ്രമേഹം ചികിത്സ" />
+          <ShareSheet url="https://vaidhyasala.com/watch/demo" title="പ്രമേഹം ചികിത്സ" />
           <Button variant="outline" onClick={() => setOmni(true)}>
             Open ⌘K search
           </Button>

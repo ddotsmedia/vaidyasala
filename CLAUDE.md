@@ -75,7 +75,7 @@ Environment/host/domain values: docs/VARIABLES.md. Never hardcode them.
   upgrades, NO Docker daemon config changes, NO reboots. If one seems required,
   mark BLOCKED with the exact command for the human to review — do not run it.
 - Integrate with the EXISTING reverse proxy found in the audit (add one new vhost/
-  router for vaidyasala.live) — never replace it, never bind our own proxy to 80/443.
+  router for vaidhyasala.com) — never replace it, never bind our own proxy to 80/443.
   Adding our vhost file + reload (nginx -t && reload / touching NPM via its UI-API)
   is allowed ONLY after config test passes; full proxy restarts are forbidden.
 - Resource ceilings so live sites never starve: set compose limits — total

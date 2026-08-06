@@ -431,7 +431,7 @@ TASK — STRICTLY READ-ONLY audit (no file writes, no docker create/run, no inst
    existing sites get TLS + vhosts; (b) every LISTEN port; (c) free RAM/disk/CPU
    headroom; (d) whether /opt/vaidyasala is free; (e) docker + compose versions.
 3. Write findings to docs/SERVER-AUDIT.md (local repo, committed): full port table,
-   proxy type + integration recipe for adding vaidyasala.live, chosen WEB_PORT
+   proxy type + integration recipe for adding vaidhyasala.com, chosen WEB_PORT
    (a verified-free 127.0.0.1 high port), RAM budget for our stack (≤40% of free),
    and a GO/NO-GO line. If NO-GO (e.g. <2GB free RAM or no safe proxy integration
    path), list exactly what the human must decide — and STOP Phase 7 there.
@@ -458,7 +458,7 @@ TASK:
    unless-stopped. Everything lives under /opt/vaidyasala (compose, .env, volumes
    as named vaidyasala_* volumes, backups/).
 2. Proxy integration per the audit's recipe — ONE new vhost/router for
-   vaidyasala.live → 127.0.0.1:${WEB_PORT}: e.g. one new file in
+   vaidhyasala.com → 127.0.0.1:${WEB_PORT}: e.g. one new file in
    /etc/nginx/sites-available + symlink + `nginx -t` + reload (only if test passes),
    or one traefik label set on OUR containers, or documented NPM steps. Include
    security headers + CSP from §10 at our vhost level. NEVER edit existing vhosts,
@@ -475,7 +475,7 @@ TASK:
 
 EXIT CHECKS: `docker ps` shows all 10 pre-existing site containers with UNCHANGED
 uptime/status (compare against SERVER-AUDIT.md snapshot — this is the #1 check);
-vaidyasala stack healthy; https://vaidyasala.live serves through the existing proxy;
+vaidyasala stack healthy; https://vaidhyasala.com serves through the existing proxy;
 `ss -tlnp` diff vs audit shows exactly ONE new listener (127.0.0.1:${WEB_PORT});
 deploy workflow green including rollback path.
 REPORT: paths + check results (incl. the live-sites uptime diff) + blockers only.
@@ -489,11 +489,11 @@ Read: docs/PROGRESS.md + ARCHITECTURE §9.1, §16 phase 7 row.
 
 TASK:
 1. Cloudflare via API where possible (else output exact manual steps as a numbered
-   copy-paste block at the end): DNS A record vaidyasala.live → 194.164.151.202
+   copy-paste block at the end): DNS A record vaidhyasala.com → 194.164.151.202
    (proxied), SSL full-strict, WAF + rate-limit rules per §10, R2 buckets + tokens,
    Turnstile keys, cache rules for ISR pages. NOTE (LAW 6): §10's server-firewall
    origin lock is SKIPPED on this shared VPS — no iptables/ufw changes; instead
-   verify our vhost only accepts the vaidyasala.live Host header, and list the
+   verify our vhost only accepts the vaidhyasala.com Host header, and list the
    optional Cloudflare-IP allowlist as a MANUAL step for the human.
 2. Backfill: throttled ingest of the FULL existing channel catalog (respect YT
    quota — batch with resume; runs over hours unattended). Monitor via /admin/queue.

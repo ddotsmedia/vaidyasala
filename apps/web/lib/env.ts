@@ -19,7 +19,7 @@ const envSchema = z.object({
 
   // Email (Resend). Absent ⇒ newsletter runs in fixture mode (logs, no send).
   RESEND_API_KEY: z.string().optional(),
-  EMAIL_FROM: z.string().default("Vaidyasala <newsletter@vaidyasala.live>"),
+  EMAIL_FROM: z.string().default("Vaidyasala <newsletter@vaidhyasala.com>"),
 
   // Meilisearch (§14). Absent master key ⇒ search returns empty (still logged).
   MEILI_URL: z.string().url().default("http://localhost:57700"),

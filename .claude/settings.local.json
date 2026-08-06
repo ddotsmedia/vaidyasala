@@ -98,7 +98,12 @@
       "Bash(awk '/^## *Phase 6/,/^## *Phase 7/' docs/PHASES.md)",
       "Bash(powershell.exe -NoProfile -Command 'Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }')",
       "Bash(export DATABASE_URL=\"postgresql://vaidyasala:vaidyasala@localhost:55432/vaidyasala?schema=public\" REDIS_URL=\"redis://localhost:56379\" NEXT_PUBLIC_SITE_URL=\"http://localhost:3000\" MEILI_URL=\"http://localhost:57700\" MEILI_MASTER_KEY=\"devMasterKeyChangeMe0000000000000000\" BETTER_AUTH_SECRET=\"devsecretdevsecretdevsecretdevse\" BETTER_AUTH_URL=\"http://localhost:3000\" NODE_ENV=\"production\")",
-      "Bash(git -c commit.gpgsign=false commit -q -F -)"
+      "Bash(git -c commit.gpgsign=false commit -q -F -)",
+      "PowerShell($rid = \\(gh run list --branch main --limit 1 --json databaseId --jq '.[0].databaseId'\\); Start-Sleep 5; gh run view $rid --json status,conclusion,workflowName,jobs --jq '.workflowName, .status, .conclusion, \\(.jobs[] | \"  \\\\\\(.name\\): \\\\\\(.status\\)/\\\\\\(.conclusion\\)\"\\)')",
+      "Read(//c/Users/Owner/.ssh/**)",
+      "Bash(ls -la ~/.ssh 2>/dev/null | head -20; echo \"--- config ---\"; cat ~/.ssh/config 2>/dev/null | head -30; echo \"--- env ---\"; grep -rinE \"VPS_USER|VPS_SSH|VPS_HOST|SSH_KEY|194\\\\.164\\\\.151\\\\.202\" .env* infra/ .github/ 2>/dev/null | grep -v node_modules | head -20)",
+      "Bash(ssh-keygen -F 194.164.151.202)",
+      "Bash(echo \"exit:$?\")"
     ],
     "additionalDirectories": [
       "\\tmp",

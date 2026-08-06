@@ -140,12 +140,12 @@ const VIDEOS: SeedVideo[] = [
 async function main(): Promise<void> {
   // 1 admin user (+ profile). Better Auth credential wiring lands in Phase 2D.
   const admin = await prisma.user.upsert({
-    where: { email: "admin@vaidyasala.live" },
+    where: { email: "admin@vaidhyasala.com" },
     update: {},
     create: {
       id: "seed-admin",
       name: "Vaidyasala Admin",
-      email: "admin@vaidyasala.live",
+      email: "admin@vaidhyasala.com",
       emailVerified: true,
     },
   });

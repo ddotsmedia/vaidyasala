@@ -14,7 +14,7 @@ export interface NewsletterAssembleDeps {
  */
 export function createNewsletterAssembleProcessor(deps: NewsletterAssembleDeps) {
   const log = deps.log ?? (() => {});
-  const siteUrl = (deps.siteUrl ?? "https://vaidyasala.live").replace(/\/$/, "");
+  const siteUrl = (deps.siteUrl ?? "https://vaidhyasala.com").replace(/\/$/, "");
 
   return async function runNewsletterAssemble(): Promise<{ issued: number; costUsd: number }> {
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);

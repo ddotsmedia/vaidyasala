@@ -13,7 +13,7 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { prisma } from "@vaidyasala/db";
 
-const email = process.env.ADMIN_EMAIL ?? "admin@vaidyasala.live";
+const email = process.env.ADMIN_EMAIL ?? "admin@vaidhyasala.com";
 const password = process.env.ADMIN_PASSWORD ?? "vaidyasala-admin";
 
 const auth = betterAuth({

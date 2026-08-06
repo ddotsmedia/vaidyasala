@@ -1,7 +1,7 @@
 import type { SeoPingInput } from "@vaidyasala/core/queue";
 
 export interface SeoPingDeps {
-  /** Canonical site origin, e.g. https://vaidyasala.live. */
+  /** Canonical site origin, e.g. https://vaidhyasala.com. */
   siteUrl: string;
   /** IndexNow key. Absent ⇒ fixture mode (logs the payload, submits nothing). */
   indexNowKey?: string;
