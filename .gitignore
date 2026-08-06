@@ -43,3 +43,4 @@ Thumbs.db
 
 # DB backups (§10)
 backups/
+dist-bundle/

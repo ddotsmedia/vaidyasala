@@ -103,7 +103,19 @@
       "Read(//c/Users/Owner/.ssh/**)",
       "Bash(ls -la ~/.ssh 2>/dev/null | head -20; echo \"--- config ---\"; cat ~/.ssh/config 2>/dev/null | head -30; echo \"--- env ---\"; grep -rinE \"VPS_USER|VPS_SSH|VPS_HOST|SSH_KEY|194\\\\.164\\\\.151\\\\.202\" .env* infra/ .github/ 2>/dev/null | grep -v node_modules | head -20)",
       "Bash(ssh-keygen -F 194.164.151.202)",
-      "Bash(echo \"exit:$?\")"
+      "Bash(echo \"exit:$?\")",
+      "Bash(grep -nE \"^#{1,3} *§?\\(9|10|11|12\\)[^0-9]\" docs/ARCHITECTURE.md)",
+      "Bash(pnpm --filter @vaidyasala/worker build:bundle)",
+      "Bash(timeout 12 node dist-bundle/main.js)",
+      "Bash(echo \"\\(exit:$?\\)\")",
+      "Bash(timeout 15 node dist-bundle/main.js)",
+      "Bash(docker version *)",
+      "Bash(rm /c/web/Vaidyasala/apps/worker/.gitignore)",
+      "Bash(printf 'dist-bundle/\\\\n')",
+      "Bash(bash -n infra/scripts/setup-vaidyasala.sh)",
+      "Bash(bash -n infra/scripts/backup.sh)",
+      "Bash(WEB_PORT= bash infra/scripts/setup-vaidyasala.sh)",
+      "Bash(perl -0pi -e 's/        limits: \\\\{ memory: \\(\\\\$\\\\{[^}]*\\\\}\\) \\\\}/        limits:\\\\n          memory: \"$1\"/g' infra/docker/compose.prod.yml)"
     ],
     "additionalDirectories": [
       "\\tmp",

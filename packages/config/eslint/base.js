@@ -4,7 +4,7 @@ import prettier from "eslint-config-prettier";
 
 /** Shared flat ESLint config for all workspace packages. */
 export default tseslint.config(
-  { ignores: ["dist/**", ".next/**", ".turbo/**", "node_modules/**", "*.config.js", "*.config.mjs"] },
+  { ignores: ["dist/**", "dist-bundle/**", ".next/**", ".turbo/**", "node_modules/**", "*.config.js", "*.config.mjs"] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

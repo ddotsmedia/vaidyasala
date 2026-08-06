@@ -1,0 +1,146 @@
+# Vaidyasala production stack — SHARED VPS (194.164.151.202, 10 live sites).
+#
+# LAW 6 shape, and every line of it matters:
+#   · project `vaidyasala`, containers `vaidyasala-*`, network `vaidyasala-net`,
+#     volumes `vaidyasala_*` — zero chance of colliding with the existing projects.
+#   · NO proxy service of ours. We never bind 80/443. The existing reverse proxy
+#     found by 7-PRE gets ONE new vhost pointing at 127.0.0.1:${WEB_PORT}.
+#   · web is the ONLY service with a host port, and it binds 127.0.0.1 explicitly.
+#     postgres/redis/meilisearch/worker publish NOTHING to the host.
+#   · every service has a memory limit; the total must sit inside the RAM budget
+#     that 7-PRE measures (≤40% of free RAM).
+#
+# ⚠️ WEB_PORT and the memory limits below are NOT yet verified against the server.
+#    docs/SERVER-AUDIT.md is currently NO-GO (the audit never ran). Do not
+#    `docker compose up` this file until that audit is done and says GO.
+#
+# Usage on the server: docker compose -p vaidyasala -f compose.prod.yml up -d
+
+name: vaidyasala
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  web:
+    image: ghcr.io/ddotsmedia/vaidyasala/web:${TAG:-latest}
+    container_name: vaidyasala-web
+    restart: unless-stopped
+    env_file: [.env]
+    # The ONLY host port in this stack. 127.0.0.1 so it is unreachable from the
+    # internet — the existing proxy is the only thing that can talk to it.
+    ports:
+      - "127.0.0.1:${WEB_PORT:?WEB_PORT must come from docs/SERVER-AUDIT.md}:3000"
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      meilisearch: { condition: service_healthy }
+    networks: [vaidyasala-net]
+    logging: *logging
+    deploy:
+      resources:
+        limits:
+          memory: "${WEB_MEM_LIMIT:-768M}"
+
+  worker:
+    image: ghcr.io/ddotsmedia/vaidyasala/worker:${TAG:-latest}
+    container_name: vaidyasala-worker
+    restart: unless-stopped
+    env_file: [.env]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    networks: [vaidyasala-net]
+    logging: *logging
+    deploy:
+      replicas: ${WORKER_REPLICAS:-1}
+      resources:
+        limits:
+          memory: "${WORKER_MEM_LIMIT:-768M}"
+
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: vaidyasala-postgres
+    restart: unless-stopped
+    # No `ports:` — internal network only. Never expose the DB on a shared box.
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?required}
+      POSTGRES_DB: ${POSTGRES_DB:-vaidyasala}
+    # shared_buffers must stay inside the memory limit below (7-PRE sizes both).
+    command:
+      - postgres
+      - -c
+      - shared_buffers=${PG_SHARED_BUFFERS:-256MB}
+      - -c
+      - effective_cache_size=${PG_EFFECTIVE_CACHE_SIZE:-768MB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [vaidyasala-net]
+    logging: *logging
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB:-vaidyasala}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: "${PG_MEM_LIMIT:-1G}"
+
+  redis:
+    image: redis:7-alpine
+    container_name: vaidyasala-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "${REDIS_MAXMEMORY:-256mb}", "--maxmemory-policy", "noeviction"]
+    volumes:
+      - redisdata:/data
+    networks: [vaidyasala-net]
+    logging: *logging
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: "${REDIS_MEM_LIMIT:-320M}"
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.11
+    container_name: vaidyasala-meili
+    restart: unless-stopped
+    environment:
+      MEILI_ENV: production
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?required}
+      MEILI_NO_ANALYTICS: "true"
+    volumes:
+      - meilidata:/meili_data
+    networks: [vaidyasala-net]
+    logging: *logging
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: "${MEILI_MEM_LIMIT:-512M}"
+
+networks:
+  vaidyasala-net:
+    name: vaidyasala-net
+    driver: bridge
+
+volumes:
+  pgdata:
+    name: vaidyasala_pgdata
+  redisdata:
+    name: vaidyasala_redisdata
+  meilidata:
+    name: vaidyasala_meilidata

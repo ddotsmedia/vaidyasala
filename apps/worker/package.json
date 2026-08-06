@@ -6,13 +6,16 @@
   "scripts": {
     "dev": "tsx watch src/main.ts",
     "build": "tsc -p tsconfig.build.json",
-    "start": "node dist/main.js",
+    "build:bundle": "esbuild src/main.ts --bundle --platform=node --target=node22 --format=esm --outfile=dist-bundle/main.js --external:@prisma/client --external:.prisma/client --external:bullmq --external:ioredis --external:meilisearch --external:zod --external:@aws-sdk/* --external:@anthropic-ai/sdk",
+    "start": "node dist-bundle/main.js",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.68.0",
     "@aws-sdk/client-s3": "^3.678.0",
+    "@prisma/client": "^5.22.0",
     "@vaidyasala/core": "workspace:*",
     "@vaidyasala/db": "workspace:*",
     "bullmq": "^5.28.1",
@@ -23,6 +26,7 @@
   "devDependencies": {
     "@types/node": "^22.9.0",
     "@vaidyasala/config": "workspace:*",
+    "esbuild": "^0.24.0",
     "eslint": "^9.13.0",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",

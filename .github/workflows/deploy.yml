@@ -1,15 +1,25 @@
 name: Deploy
 
-# SKELETON (Phase 1D). Builds + pushes multi-stage images to GHCR on main.
-# The VPS SSH deploy (compose pull → prisma migrate deploy → rolling restart →
-# smoke → auto-rollback) and the Dockerfiles it needs land in Phase 7A, which
-# also sets repo variable ENABLE_DEPLOY=true to switch this on. Until then the
-# job is skipped (green), never failed.
+# Phase 7A. Builds multi-stage images to GHCR, then deploys to the SHARED VPS.
+#
+# ⚠️ LAW 6. This server runs 10 other live sites. The deploy job only ever touches
+# containers in the `vaidyasala` compose project. It never runs `docker restart` on
+# anything else, never prunes, never touches the reverse proxy.
+#
+# Gates:
+#   vars.ENABLE_DEPLOY == 'true'  → the ssh deploy job runs at all.
+#   workflow_dispatch build_only  → build+push images without deploying (use this
+#                                   to prove the Dockerfiles before the first deploy).
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      build_only:
+        description: "Build and push images, skip the VPS deploy"
+        type: boolean
+        default: false
 
 concurrency:
   group: deploy-main
@@ -22,7 +32,7 @@ env:
 jobs:
   build-push:
     name: build + push images (GHCR)
-    if: ${{ vars.ENABLE_DEPLOY == 'true' }}
+    if: ${{ vars.ENABLE_DEPLOY == 'true' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -55,10 +65,75 @@ jobs:
           cache-to: type=gha,mode=max
 
   deploy:
-    name: deploy to VPS (Phase 7A)
+    name: deploy to VPS
     needs: build-push
-    if: ${{ vars.ENABLE_DEPLOY == 'true' }}
+    if: ${{ vars.ENABLE_DEPLOY == 'true' && !inputs.build_only }}
     runs-on: ubuntu-latest
+    environment: production
     steps:
-      - name: Placeholder
-        run: echo "VPS deploy is implemented in Phase 7A (LAW 6 governs it)."
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script_stop: true
+          envs: GITHUB_SHA,GITHUB_ACTOR,REGISTRY_TOKEN
+          script: |
+            set -euo pipefail
+            cd /opt/vaidyasala
+
+            COMPOSE="docker compose -p vaidyasala -f compose.prod.yml"
+            PREV_TAG="$(grep -E '^TAG=' .env | cut -d= -f2 || echo latest)"
+            echo "previous tag: ${PREV_TAG} → new tag: ${GITHUB_SHA}"
+
+            # Snapshot every container NOT ours, so we can prove we left the 10
+            # live sites alone. This is the single most important check here.
+            docker ps --format '{{.Names}}\t{{.Status}}' \
+              | grep -v '^vaidyasala-' | sort > /tmp/others.before
+
+            echo "${REGISTRY_TOKEN}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin
+
+            sed -i "s/^TAG=.*/TAG=${GITHUB_SHA}/" .env
+            $COMPOSE pull web worker
+
+            # Migrations before the new code serves traffic (additive only, LAW 5).
+            $COMPOSE run --rm --no-deps worker \
+              node node_modules/prisma/build/index.js migrate deploy \
+              --schema packages/db/prisma/schema
+
+            # Rolling restart of OUR services only — named explicitly, never a
+            # bare `docker restart` and never `$COMPOSE restart` without args.
+            $COMPOSE up -d --no-deps web worker
+
+            # Smoke check on the loopback port.
+            WEB_PORT="$(grep -E '^WEB_PORT=' .env | cut -d= -f2)"
+            ok=0
+            for i in $(seq 1 30); do
+              if curl -fsS "http://127.0.0.1:${WEB_PORT}/api/health" >/dev/null; then ok=1; break; fi
+              sleep 2
+            done
+
+            if [ "$ok" -ne 1 ]; then
+              echo "✗ smoke check failed — rolling back to ${PREV_TAG}"
+              sed -i "s/^TAG=.*/TAG=${PREV_TAG}/" .env
+              $COMPOSE up -d --no-deps web worker    # our images only
+              docker ps --format '{{.Names}}\t{{.Status}}' \
+                | grep -v '^vaidyasala-' | sort > /tmp/others.after
+              diff /tmp/others.before /tmp/others.after || echo "!! other sites changed — investigate"
+              exit 1
+            fi
+
+            # Prove the other 10 sites are byte-identical in name+status.
+            docker ps --format '{{.Names}}\t{{.Status}}' \
+              | grep -v '^vaidyasala-' | sort > /tmp/others.after
+            if ! diff /tmp/others.before /tmp/others.after; then
+              echo "!! containers outside our project changed during deploy — investigate immediately"
+              exit 1
+            fi
+
+            echo "✓ deployed ${GITHUB_SHA}; no container outside the vaidyasala project changed"
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}

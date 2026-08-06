@@ -1,0 +1,64 @@
+# Worker image (§12): deps → build (esbuild bundle) → runner + yt-dlp/ffmpeg layer.
+# Build context is the repo root: docker build -f infra/docker/Dockerfile.worker .
+#
+# Why a bundle and not `tsc` output: @vaidyasala/core and @vaidyasala/db publish their
+# `exports` as raw .ts (the web app consumes them via Next transpilePackages). Plain
+# `node dist/main.js` therefore cannot resolve them at runtime. esbuild inlines the
+# workspace TS and leaves the real npm packages external — see DECISIONS.md.
+
+FROM node:22-slim AS base
+ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH
+RUN corepack enable && apt-get update \
+  && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+WORKDIR /repo
+
+# ---- deps ----
+FROM base AS deps
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY apps/web/package.json            apps/web/
+COPY apps/worker/package.json         apps/worker/
+COPY packages/core/package.json       packages/core/
+COPY packages/db/package.json         packages/db/
+COPY packages/ui/package.json         packages/ui/
+COPY packages/config/package.json     packages/config/
+COPY packages/db/prisma packages/db/prisma
+RUN pnpm install --frozen-lockfile
+
+# ---- build ----
+FROM base AS build
+COPY --from=deps /repo/node_modules ./node_modules
+COPY --from=deps /repo/apps/worker/node_modules ./apps/worker/node_modules
+COPY --from=deps /repo/packages ./packages
+COPY . .
+RUN pnpm --filter @vaidyasala/db generate \
+  && pnpm --filter @vaidyasala/worker build:bundle
+
+# ---- runner ----
+FROM node:22-slim AS runner
+# yt-dlp + ffmpeg: audio extraction for the ASR step (§8.2).
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+       openssl ca-certificates ffmpeg python3 curl \
+  && curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp \
+       -o /usr/local/bin/yt-dlp \
+  && chmod a+rx /usr/local/bin/yt-dlp \
+  && apt-get purge -y curl && apt-get autoremove -y \
+  && rm -rf /var/lib/apt/lists/*
+ENV NODE_ENV=production
+WORKDIR /app
+
+# The bundle plus the externals it expects, and the Prisma schema/migrations so the
+# deploy job can run `prisma migrate deploy` from this image.
+COPY --from=build /repo/apps/worker/dist-bundle      ./dist-bundle
+COPY --from=build /repo/node_modules                 ./node_modules
+COPY --from=build /repo/apps/worker/node_modules     ./apps/worker/node_modules
+COPY --from=build /repo/packages/db/prisma           ./packages/db/prisma
+COPY --from=build /repo/packages/db/node_modules     ./packages/db/node_modules
+
+USER node
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+  CMD node -e "process.exit(0)"
+
+CMD ["node", "dist-bundle/main.js"]
