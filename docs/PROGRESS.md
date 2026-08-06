@@ -1,50 +1,58 @@
 # PROGRESS — Vaidyasala
 
 ## Current phase
-Phase 6 — Full Admin & Ops ✓ COMPLETE · autopilot STOP boundary (LAW 7) · next: Phase 7 (human-gated SHARED-VPS deploy — deploy prompt only)
+Phase 7 — Deploy & Launch. **STALLED at 7-PRE. Nothing is deployed. The server was
+never contacted.** 7A artifacts authored offline and committed; 7B is manual.
 
 ## Done
-- ✓ Phase 0-5 complete (foundation/CI, ingest+AI pipeline, public core+SEO+perf, search 4A+4B, engagement loop)
-- ✓ Phase 6 Full Admin & Ops (§7.6, §9.3, §10, §4 Tier 3):
-  - Admin nav + sections: /admin/settings (trusted-mode auto-publish toggle §8.3, lib/settings),
-    /admin/topics + /admin/playlists CRUD, /admin/articles (MDX editor + status), /admin/media
-    (R2/MinIO browser), /admin/newsletter (issue list + approve), /admin/seo, /admin/analytics.
-    Every mutation writes AuditLog. Form-actions used in <form action> return Promise<void>;
-    update/delete siblings return ActionResult.
-  - 2FA (§10): self-contained RFC 6238 TOTP (lib/totp) — enroll at /2fa (secret+backup codes →
-    verify 6-digit → user.twoFactorEnabled). Admin layout gates EDITOR/ADMIN → redirect /2fa
-    (ADMIN_2FA_ENFORCE=false bypass for CI/e2e). better-auth twoFactor plugin dropped (type skew).
-  - Analytics (lib/admin/analytics): funnel (play→75%→sub-click), video leaderboard, AI cost per
-    video (Job.costUsd rollup).
-  - Ops nightly (worker jobs/nightly.ts + cron): seo-pull (BLOCKED, no GSC/CrUX creds — stubbed),
-    link-crawl (HEAD-probe sitemap → SiteHealthIssue), search-consistency (DB vs Meili doc-count
-    drift → SiteHealthIssue). Weekly newsletter assemble (Mon 06:00). OPS_JOBS + main.ts registered.
-  - infra/scripts/backup.sh (pg_dump | gzip -9, optional gpg + R2, 30-snapshot retention) +
-    restore.sh (drill into scratch db, verify row counts, drop). observability compose profile
-    (prometheus/grafana/loki/uptime-kuma, 127.0.0.1-only) + alerts.yml.
-- ✓ Exit checks: typecheck ✓ · lint ✓ · e2e ✓ (5 passed) · web+worker build ✓ ·
-    backup.sh+restore.sh round-trip on dev compose ✓ (Video 5/Topic 3/TranscriptSegmentVector 11) ·
-    Setting migration applied ✓ · newsletter draft assembles ✓ · observability yaml valid ✓ ·
-    2FA gate redirects unenrolled admin → /2fa ✓.
-
-- ✓ Domain propagation (bd299a7): 543a87e had changed docs/VARIABLES.md only; vaidhyasala.com now
-    applied to env.ts EMAIL_FROM default, seed + create-admin admin email, OG-image footer,
-    newsletter From, worker siteUrl/seo-ping fallbacks, styleguide, PHASES.md + CLAUDE.md §7 vhost
-    refs. typecheck ✓ · lint ✓. (.env.example not reachable — permission-denied; verify its
-    NEXT_PUBLIC_SITE_URL/EMAIL_FROM by hand.)
+- ✓ Phase 0-6 complete (foundation/CI, ingest+AI pipeline, public core+SEO+perf,
+  search 4A+4B, engagement loop, admin+ops).
+- ✓ Domain propagation (bd299a7): vaidhyasala.com now in env defaults, seed/admin
+  emails, OG-image footer, newsletter From, worker fallbacks, PHASES.md + CLAUDE.md.
+- ✓ VPS credentials recorded (14c9005): VPS_USER=root,
+  VPS_SSH_KEY=C:\Users\Owner\.ssh\id_ed25519 (id_rsa does not exist on this machine).
+  **Neither has ever authenticated — no login has succeeded.**
+- ✗ 7-PRE audit — NOT RUN. `ssh root@194.164.151.202` is denied by the agent
+  permission layer. docs/SERVER-AUDIT.md is a NO-GO stub holding the exact
+  read-only command block; every field in it is UNKNOWN by design, not filled
+  with guesses (a wrong WEB_PORT collides with one of the 10 live sites).
+- ✓ 7A artifacts, offline only (fb04593):
+  - infra/docker/Dockerfile.web (deps→build→standalone runner, non-root, healthcheck)
+  - infra/docker/Dockerfile.worker (esbuild bundle + yt-dlp/ffmpeg layer)
+  - apps/worker: `build:bundle` via esbuild; `start` now runs dist-bundle/main.js.
+    Fixes a real pre-existing break — @vaidyasala/core and @vaidyasala/db export raw
+    .ts, so the old `node dist/main.js` could not resolve them. @anthropic-ai/sdk and
+    @prisma/client promoted to direct worker deps.
+  - infra/docker/compose.prod.yml — LAW 6 shape: only web publishes a port and only
+    on 127.0.0.1; WEB_PORT required with no default; memory limits per service.
+  - infra/scripts/setup-vaidyasala.sh — writes only under /opt/vaidyasala, starts
+    nothing, and aborts before any write if WEB_PORT is not free at run time.
+  - .github/workflows/deploy.yml — build_only dispatch; migrate → rolling restart of
+    our services by name → smoke → rollback; diffs non-vaidyasala `docker ps`
+    before/after and fails if anything else changed.
+  - .env.production.example, docs/GO-LIVE-MANUAL.md (proxy recipes per proxy type,
+    Cloudflare steps, remaining-manual-steps table).
+- ✓ Checks: typecheck ✓ · lint ✓ (dist-bundle/ added to base eslint ignores) ·
+  deploy.yml + compose.prod.yml parse as valid YAML ✓ · setup script `bash -n` ✓ and
+  its missing-WEB_PORT guard fires ✓ · worker bundle boots ("[worker] boot", then
+  Redis ECONNREFUSED as expected) ✓.
 
 ## Next step
-Phase 7 — SHARED-VPS deploy (194.164.151.202, 10 live sites). HUMAN-GATED per LAW 6 + LAW 7:
-runs ONLY from an explicit deploy prompt. Autopilot STOPS here. First Phase-7 task is a
-read-only server audit (SERVER-AUDIT.md) with zero write ops.
+Clear the 7-PRE blocker, then re-run Phase 7 from the audit. Order in
+docs/GO-LIVE-MANUAL.md: audit → GitHub secrets + `build_only` image proof →
+provision /opt/vaidyasala → stack up → proxy vhost → Cloudflare → backfill.
 
 ## Blockers
-- Phase 7 SSH is blocked in-session: outbound `ssh root@194.164.151.202` denied by the harness
-  permission layer, and VARIABLES.md VPS_USER/VPS_SSH_KEY are still `<placeholders>`. Fill both
-  and allow the ssh command before 7-PRE.
-- AI/ASR/YouTube/R2/INDEXNOW/RESEND/ANTHROPIC/EMBED/Turnstile/GSC keys absent → fixtures/MinIO/
-  fixture-mode; live sends + external pulls (seo-pull) BLOCKED (LAW 1).
-- Docker daemon UNSTABLE here (flaps); dev Meili key=devMasterKeyChangeMe0000000000000000. Kill
-  stale `next start` on :3000 before restart. .env auto-rewritten wrong by linter — export creds.
+- **7-PRE (hard):** ssh to the VPS is denied by the agent permission layer. Allowlist
+  it, or have a human run the read-only block in SERVER-AUDIT.md and paste it back.
+  Until then WEB_PORT, EXISTING_PROXY and the RAM budget are all unknown.
+- **Dockerfiles UNVERIFIED:** no working Docker daemon locally (npipe not found), so
+  neither image has ever been built. Prove them with the `build_only` dispatch before
+  ENABLE_DEPLOY is set. Expect first-run fixes.
+- **Deploy secrets not set:** VPS_HOST / VPS_USER / VPS_SSH_KEY and ENABLE_DEPLOY
+  need a repo admin.
+- **§10 origin firewall lock skipped** on this shared box (no ufw/iptables per LAW 6);
+  Host-header-only vhost is the compensating control. Human decision, logged.
+- AI/ASR/YouTube/R2/INDEXNOW/RESEND/ANTHROPIC/EMBED/Turnstile/GSC keys still absent →
+  fixture/MinIO mode; live sends + seo-pull remain BLOCKED.
 - Local Lighthouse trace bug (perf/LCP NaN); CI Linux measures fine.
-- `next start` warns under output:standalone (use node .next/standalone/server.js in prod) — Phase 7.
