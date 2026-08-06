@@ -31,6 +31,8 @@ export const auth = betterAuth({
       },
     },
   },
+  // TOTP 2FA (§10) is enforced in the admin layout via a self-contained TOTP
+  // enrollment (lib/totp) rather than the Better Auth plugin (version-skew types).
   // nextCookies() must be last so Set-Cookie propagates from server actions.
   plugins: [nextCookies()],
 });

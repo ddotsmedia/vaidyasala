@@ -87,10 +87,22 @@
       "Bash(perl -ni -e 'print unless /eslint-disable-next-line react-hooks\\\\/exhaustive-deps/' apps/web/components/video/progress-beacon.tsx)",
       "Bash(pnpm --filter @vaidyasala/core typecheck)",
       "Bash(export DATABASE_URL=\"postgresql://vaidyasala:vaidyasala@localhost:55432/vaidyasala?schema=public\" REDIS_URL=\"redis://localhost:56379\" NEXT_PUBLIC_SITE_URL=\"http://localhost:3000\" MEILI_URL=\"http://localhost:57700\" MEILI_MASTER_KEY=\"devMasterKeyChangeMe0000000000000000\" CI=1)",
-      "Bash(pkill -f \"playwright\")"
+      "Bash(pkill -f \"playwright\")",
+      "Bash(pnpm --filter @vaidyasala/worker typecheck)",
+      "Bash(perl -0pi -e 's/export async function createTopic\\\\\\(form: FormData\\\\\\): Promise<ActionResult>/export async function createTopic\\(form: FormData\\): Promise<void>/' \"apps/web/app/\\(admin\\)/admin/topics/actions.ts\")",
+      "Bash(perl -0pi -e 's/export async function createPlaylist\\\\\\(form: FormData\\\\\\): Promise<ActionResult>/export async function createPlaylist\\(form: FormData\\): Promise<void>/' \"apps/web/app/\\(admin\\)/admin/playlists/actions.ts\")",
+      "Bash(perl -0pi -e 's/export async function saveArticle\\\\\\(id: string, form: FormData\\\\\\): Promise<ActionResult>/export async function saveArticle\\(id: string, form: FormData\\): Promise<void>/' \"apps/web/app/\\(admin\\)/admin/articles/actions.ts\")",
+      "Bash(perl -0pi -e 's/revalidatePath\\\\\\(\"\\\\/admin\\\\/topics\"\\\\\\);\\\\n  return \\\\{ ok: true \\\\};\\\\n\\\\}\\\\n\\\\nexport async function updateTopic/revalidatePath\\(\"\\\\/admin\\\\/topics\"\\);\\\\n}\\\\n\\\\nexport async function updateTopic/' \"apps/web/app/\\(admin\\)/admin/topics/actions.ts\")",
+      "Bash(perl -0pi -e 's/revalidatePath\\\\\\(\"\\\\/admin\\\\/playlists\"\\\\\\);\\\\n  return \\\\{ ok: true \\\\};\\\\n\\\\}\\\\n\\\\nexport async function deletePlaylist/revalidatePath\\(\"\\\\/admin\\\\/playlists\"\\);\\\\n}\\\\n\\\\nexport async function deletePlaylist/' \"apps/web/app/\\(admin\\)/admin/playlists/actions.ts\")",
+      "Bash(perl -0pi -e 's/revalidatePath\\\\\\(`\\\\/admin\\\\/articles\\\\/\\\\$\\\\{id\\\\}`\\\\\\);\\\\n  return \\\\{ ok: true \\\\};\\\\n\\\\}/revalidatePath\\(`\\\\/admin\\\\/articles\\\\/\\\\${id}`\\);\\\\n}/' \"apps/web/app/\\(admin\\)/admin/articles/actions.ts\")",
+      "Bash(awk '/^## *Phase 6/,/^## *Phase 7/' docs/PHASES.md)",
+      "Bash(powershell.exe -NoProfile -Command 'Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }')",
+      "Bash(export DATABASE_URL=\"postgresql://vaidyasala:vaidyasala@localhost:55432/vaidyasala?schema=public\" REDIS_URL=\"redis://localhost:56379\" NEXT_PUBLIC_SITE_URL=\"http://localhost:3000\" MEILI_URL=\"http://localhost:57700\" MEILI_MASTER_KEY=\"devMasterKeyChangeMe0000000000000000\" BETTER_AUTH_SECRET=\"devsecretdevsecretdevsecretdevse\" BETTER_AUTH_URL=\"http://localhost:3000\" NODE_ENV=\"production\")",
+      "Bash(git -c commit.gpgsign=false commit -q -F -)"
     ],
     "additionalDirectories": [
-      "\\tmp"
+      "\\tmp",
+      "C:\\web\\Vaidyasala\\docs"
     ]
   }
 }

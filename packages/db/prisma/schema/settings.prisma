@@ -1,0 +1,10 @@
+// ───────────────────────── SETTINGS (§8.3 trusted mode, ops toggles) ─────────
+// Singleton-ish key/value store for operator toggles (e.g. auto-publish trusted
+// mode). Kept out of env so editors can flip it from /admin/settings at runtime.
+
+model Setting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}

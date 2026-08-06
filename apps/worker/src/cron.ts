@@ -25,4 +25,20 @@ export async function registerCron(): Promise<void> {
     { pattern: "0 6 * * 1" },
     { name: OPS_JOBS.newsletterAssemble, data: {} },
   );
+  // Nightly SEO + health sweeps (§7.6/§9.3, 03:00–03:30).
+  await ops.upsertJobScheduler(
+    "cron:seo-pull",
+    { pattern: "0 3 * * *" },
+    { name: OPS_JOBS.seoPull, data: {} },
+  );
+  await ops.upsertJobScheduler(
+    "cron:link-crawl",
+    { pattern: "15 3 * * *" },
+    { name: OPS_JOBS.linkCrawl, data: {} },
+  );
+  await ops.upsertJobScheduler(
+    "cron:search-consistency",
+    { pattern: "30 3 * * *" },
+    { name: OPS_JOBS.searchConsistency, data: {} },
+  );
 }

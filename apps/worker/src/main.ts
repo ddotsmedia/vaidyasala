@@ -24,6 +24,11 @@ import { createStatsRefreshProcessor } from "./jobs/stats-refresh";
 import { createYtPollProcessor } from "./jobs/yt-poll";
 import { createSeoPingProcessor } from "./jobs/seo-ping";
 import { createNewsletterAssembleProcessor } from "./jobs/newsletter-assemble";
+import {
+  createSeoPullProcessor,
+  createLinkCrawlProcessor,
+  createSearchConsistencyProcessor,
+} from "./jobs/nightly";
 import { seoPingInputSchema } from "@vaidyasala/core/queue";
 import { enqueueIngest } from "./enqueue";
 
@@ -87,6 +92,9 @@ async function main(): Promise<void> {
     siteUrl: env.SITE_URL,
     log,
   });
+  const seoPull = createSeoPullProcessor({ prisma, siteUrl: env.SITE_URL, log });
+  const linkCrawl = createLinkCrawlProcessor({ prisma, siteUrl: env.SITE_URL, log });
+  const searchConsistency = createSearchConsistencyProcessor({ prisma, siteUrl: env.SITE_URL, log });
 
   const workers: Worker[] = [
     new Worker(QUEUE_NAMES.ingest, (job) => runMirrored(prisma, job, () => ingest(job.data)), {
@@ -102,6 +110,9 @@ async function main(): Promise<void> {
           else if (job.name === OPS_JOBS.seoPing)
             r = await seoPing(seoPingInputSchema.parse(job.data));
           else if (job.name === OPS_JOBS.newsletterAssemble) r = await newsletterAssemble();
+          else if (job.name === OPS_JOBS.seoPull) r = await seoPull();
+          else if (job.name === OPS_JOBS.linkCrawl) r = await linkCrawl();
+          else if (job.name === OPS_JOBS.searchConsistency) r = await searchConsistency();
           else r = await ytPoll();
           return { costUsd: r.costUsd };
         }),

@@ -1,0 +1,69 @@
+name: vaidyasala-observability
+
+# Opt-in observability stack (§10). Runs alongside the app on the same host until
+# scale demands separation (§15). Start with:
+#   docker compose -f compose.prod.yml -f compose.observability.yml --profile observability up -d
+# All bound to 127.0.0.1 only (LAW 6 — never expose on the shared VPS).
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: vaidyasala-prometheus
+    profiles: [observability]
+    restart: unless-stopped
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./observability/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - promdata:/prometheus
+    ports: ["127.0.0.1:9090:9090"]
+    networks: [vaidyasala-obs]
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: vaidyasala-grafana
+    profiles: [observability]
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-changeme}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafanadata:/var/lib/grafana
+    ports: ["127.0.0.1:3001:3000"]
+    networks: [vaidyasala-obs]
+    depends_on: [prometheus, loki]
+
+  loki:
+    image: grafana/loki:3.1.1
+    container_name: vaidyasala-loki
+    profiles: [observability]
+    restart: unless-stopped
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - lokidata:/loki
+    ports: ["127.0.0.1:3100:3100"]
+    networks: [vaidyasala-obs]
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: vaidyasala-uptime-kuma
+    profiles: [observability]
+    restart: unless-stopped
+    volumes:
+      - kumadata:/app/data
+    ports: ["127.0.0.1:3002:3001"]
+    networks: [vaidyasala-obs]
+
+networks:
+  vaidyasala-obs:
+    name: vaidyasala-obs
+    driver: bridge
+
+volumes:
+  promdata:
+    name: vaidyasala_promdata
+  grafanadata:
+    name: vaidyasala_grafanadata
+  lokidata:
+    name: vaidyasala_lokidata
+  kumadata:
+    name: vaidyasala_kumadata

@@ -41,6 +41,9 @@ export const OPS_JOBS = {
   statsRefresh: "stats-refresh",
   seoPing: "seo-ping",
   newsletterAssemble: "newsletter-assemble",
+  seoPull: "seo-pull",
+  linkCrawl: "link-crawl",
+  searchConsistency: "search-consistency",
 } as const;
 export type OpsJob = (typeof OPS_JOBS)[keyof typeof OPS_JOBS];
 

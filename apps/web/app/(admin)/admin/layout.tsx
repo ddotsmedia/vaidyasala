@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { prisma } from "@vaidyasala/db";
 import { authorize } from "@/lib/authz";
 import { SignOutButton } from "@/components/admin/sign-out-button";
 
@@ -13,8 +14,16 @@ const NAV = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/queue", label: "Queue" },
   { href: "/admin/videos", label: "Videos" },
+  { href: "/admin/articles", label: "Articles" },
+  { href: "/admin/topics", label: "Topics" },
+  { href: "/admin/playlists", label: "Playlists" },
+  { href: "/admin/media", label: "Media" },
   { href: "/admin/comments", label: "Comments" },
+  { href: "/admin/newsletter", label: "Newsletter" },
+  { href: "/admin/analytics", label: "Analytics" },
+  { href: "/admin/seo", label: "SEO" },
   { href: "/admin/search-analytics", label: "Search" },
+  { href: "/admin/settings", label: "Settings" },
 ] as const;
 
 /** Admin shell (§13). Gated by the single authorize() layer (§10); noindex. */
@@ -30,6 +39,17 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </p>
       </main>
     );
+  }
+
+  // §10: TOTP 2FA is mandatory for EDITOR/ADMIN. Unenrolled → enrollment page
+  // (which lives outside this layout, so no redirect loop). Dev escape hatch:
+  // ADMIN_2FA_ENFORCE=false skips the gate for local admin work.
+  if (process.env.ADMIN_2FA_ENFORCE !== "false") {
+    const user = await prisma.user.findUnique({
+      where: { id: authz.ctx!.userId },
+      select: { twoFactorEnabled: true },
+    });
+    if (!user?.twoFactorEnabled) redirect("/2fa");
   }
 
   return (

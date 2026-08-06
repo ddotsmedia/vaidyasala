@@ -1,0 +1,37 @@
+# Alert rules (§10): queue depth, error rate, CWV regression, disk, cert expiry,
+# failed logins. Routed to email/Telegram via Alertmanager (configured per host).
+groups:
+  - name: vaidyasala
+    rules:
+      - alert: HighQueueDepth
+        expr: vaidyasala_queue_depth > 500
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "BullMQ backlog above 500 for 10m"
+
+      - alert: HighErrorRate
+        expr: rate(vaidyasala_http_errors_total[5m]) > 1
+        for: 5m
+        labels: { severity: critical }
+        annotations:
+          summary: "5xx error rate elevated"
+
+      - alert: DiskSpaceLow
+        expr: node_filesystem_avail_bytes / node_filesystem_size_bytes < 0.1
+        for: 15m
+        labels: { severity: critical }
+        annotations:
+          summary: "Less than 10% disk free"
+
+      - alert: CertExpiringSoon
+        expr: probe_ssl_earliest_cert_expiry - time() < 7 * 24 * 3600
+        labels: { severity: warning }
+        annotations:
+          summary: "TLS certificate expires within 7 days"
+
+      - alert: FailedLoginsSpike
+        expr: increase(vaidyasala_failed_logins_total[10m]) > 20
+        labels: { severity: warning }
+        annotations:
+          summary: "More than 20 failed logins in 10m"
