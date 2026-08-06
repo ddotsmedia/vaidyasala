@@ -10,9 +10,9 @@ DEFAULT_BRANCH = main
 REGISTRY = ghcr.io/ddotsmedia/vaidyasala
 
 ## DOMAIN (needed at Phase 7)
-DOMAIN = vaidyasala.live
+DOMAIN = vaidhyasala.com
 DNS = Cloudflare (proxied)
-CANONICAL = https://vaidyasala.live
+CANONICAL = https://vaidhyasala.com
 
 ## VPS (needed at Phase 7) — ⚠️ SHARED SERVER
 VPS_IP = 194.164.151.202
