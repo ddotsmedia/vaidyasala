@@ -27,12 +27,21 @@ Phase 6 — Full Admin & Ops ✓ COMPLETE · autopilot STOP boundary (LAW 7) · 
     Setting migration applied ✓ · newsletter draft assembles ✓ · observability yaml valid ✓ ·
     2FA gate redirects unenrolled admin → /2fa ✓.
 
+- ✓ Domain propagation (bd299a7): 543a87e had changed docs/VARIABLES.md only; vaidhyasala.com now
+    applied to env.ts EMAIL_FROM default, seed + create-admin admin email, OG-image footer,
+    newsletter From, worker siteUrl/seo-ping fallbacks, styleguide, PHASES.md + CLAUDE.md §7 vhost
+    refs. typecheck ✓ · lint ✓. (.env.example not reachable — permission-denied; verify its
+    NEXT_PUBLIC_SITE_URL/EMAIL_FROM by hand.)
+
 ## Next step
 Phase 7 — SHARED-VPS deploy (194.164.151.202, 10 live sites). HUMAN-GATED per LAW 6 + LAW 7:
 runs ONLY from an explicit deploy prompt. Autopilot STOPS here. First Phase-7 task is a
 read-only server audit (SERVER-AUDIT.md) with zero write ops.
 
 ## Blockers
+- Phase 7 SSH is blocked in-session: outbound `ssh root@194.164.151.202` denied by the harness
+  permission layer, and VARIABLES.md VPS_USER/VPS_SSH_KEY are still `<placeholders>`. Fill both
+  and allow the ssh command before 7-PRE.
 - AI/ASR/YouTube/R2/INDEXNOW/RESEND/ANTHROPIC/EMBED/Turnstile/GSC keys absent → fixtures/MinIO/
   fixture-mode; live sends + external pulls (seo-pull) BLOCKED (LAW 1).
 - Docker daemon UNSTABLE here (flaps); dev Meili key=devMasterKeyChangeMe0000000000000000. Kill
