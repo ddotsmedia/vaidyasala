@@ -1,58 +1,15 @@
-# Web image (§12): deps → build (standalone) → runner (node:22-slim, non-root).
-# Build context is the repo root: docker build -f infra/docker/Dockerfile.web .
+﻿FROM node:22-alpine
 
-FROM node:22-slim AS base
-ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH
-RUN corepack enable && apt-get update \
-  && apt-get install -y --no-install-recommends openssl ca-certificates \
-  && rm -rf /var/lib/apt/lists/*
-WORKDIR /repo
-
-# ---- deps: manifests only, so the install layer caches across source edits ----
-FROM base AS deps
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
-COPY apps/web/package.json            apps/web/
-COPY apps/worker/package.json         apps/worker/
-COPY packages/core/package.json       packages/core/
-COPY packages/db/package.json         packages/db/
-COPY packages/ui/package.json         packages/ui/
-COPY packages/config/package.json     packages/config/
-# @vaidyasala/db postinstall runs `prisma generate`, which needs the schema present.
-COPY packages/db/prisma packages/db/prisma
-RUN pnpm install --frozen-lockfile
-
-# ---- build ----
-FROM base AS build
-COPY --from=deps /repo/node_modules ./node_modules
-COPY --from=deps /repo/apps/web/node_modules ./apps/web/node_modules
-COPY --from=deps /repo/apps/worker/node_modules ./apps/worker/node_modules
-COPY --from=deps /repo/packages ./packages
-COPY . .
-RUN pnpm --filter @vaidyasala/db generate \
-  && pnpm --filter @vaidyasala/web build
-
-# ---- runner ----
-FROM node:22-slim AS runner
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends openssl ca-certificates wget \
-  && rm -rf /var/lib/apt/lists/*
-ENV NODE_ENV=production \
-    NEXT_TELEMETRY_DISABLED=1 \
-    PORT=3000 \
-    HOSTNAME=0.0.0.0
 WORKDIR /app
+COPY . .
 
-# Next standalone bundles only the traced runtime deps (§12: ~150MB image).
-COPY --from=build /repo/apps/web/.next/standalone ./
-COPY --from=build /repo/apps/web/.next/static     ./apps/web/.next/static
-COPY --from=build /repo/apps/web/public           ./apps/web/public
+RUN npm install -g pnpm
+RUN pnpm install --no-frozen-lockfile
 
-# Non-root (§10). node:22-slim ships uid/gid 1000 as `node`.
-USER node
+RUN pnpm --filter @vaidyasala/db generate
+RUN pnpm --filter @vaidyasala/web build
+
+ENV NODE_ENV production
 EXPOSE 3000
 
-HEALTHCHECK --interval=15s --timeout=5s --start-period=40s --retries=5 \
-  CMD wget -qO- http://127.0.0.1:3000/api/health >/dev/null 2>&1 || exit 1
-
-# `next start` is wrong under output:standalone — run the generated server.
-CMD ["node", "apps/web/server.js"]
+CMD ["pnpm", "--filter", "@vaidyasala/web", "start"]
