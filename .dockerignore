@@ -1,0 +1,38 @@
+# Keep the build context small and the image reproducible.
+# node_modules especially: the host's are Windows-built and would shadow the
+# ones installed inside the image, which breaks every native binary.
+node_modules
+**/node_modules
+
+.next
+**/.next
+dist
+**/dist
+dist-bundle
+**/dist-bundle
+.turbo
+**/.turbo
+
+.git
+.github
+.claude
+.vscode
+
+# Secrets never belong in a build context.
+.env
+.env.*
+!.env.example
+
+# Test + tooling output
+coverage
+**/coverage
+test-results
+**/test-results
+playwright-report
+**/playwright-report
+
+# Local infra + docs are not needed to build the app
+docs
+infra/docker/observability
+backups
+*.log

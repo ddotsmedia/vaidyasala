@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getPlaylistBySlug, playlistSlugs } from "@/lib/feeds";
+import { safeStaticParams } from "@/lib/static-params";
 import { VideoGrid } from "@/components/home/video-grid";
 
 export const revalidate = 600;
 export const dynamicParams = true;
 
 export async function generateStaticParams(): Promise<{ slug: string }[]> {
-  return (await playlistSlugs()).map((slug) => ({ slug }));
+  return safeStaticParams(
+    async () => (await playlistSlugs()).map((slug) => ({ slug })),
+    "playlists",
+  );
 }
 
 export async function generateMetadata({

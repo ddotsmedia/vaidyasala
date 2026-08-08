@@ -58,6 +58,13 @@ jobs:
           context: .
           file: infra/docker/Dockerfile.${{ matrix.app }}
           push: true
+          # The web build prerenders DB-backed pages. With no DATABASE_URL the
+          # image still builds (generateStaticParams degrades to on-demand), but
+          # any top-level DB query fails the export — so set the BUILD_DATABASE_URL
+          # secret to a database reachable from the runner if you want those
+          # pages prerendered here rather than on first request.
+          build-args: |
+            DATABASE_URL=${{ secrets.BUILD_DATABASE_URL }}
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.app }}:${{ github.sha }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.app }}:latest

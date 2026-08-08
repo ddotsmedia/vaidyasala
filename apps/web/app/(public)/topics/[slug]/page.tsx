@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTopicBySlug, publishedTopicSlugs } from "@/lib/feeds";
+import { safeStaticParams } from "@/lib/static-params";
 import { TopicVideoBrowser } from "@/components/topics/topic-video-browser";
 import { CategoryGrid } from "@/components/category-grid";
 import { Breadcrumbs } from "@/components/seo/breadcrumbs";
@@ -18,7 +19,10 @@ export const revalidate = 3600;
 export const dynamicParams = true;
 
 export async function generateStaticParams(): Promise<{ slug: string }[]> {
-  return (await publishedTopicSlugs()).map((slug) => ({ slug }));
+  return safeStaticParams(
+    async () => (await publishedTopicSlugs()).map((slug) => ({ slug })),
+    "topics",
+  );
 }
 
 export async function generateMetadata({

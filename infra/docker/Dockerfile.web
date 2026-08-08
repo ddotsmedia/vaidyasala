@@ -1,15 +1,82 @@
-﻿FROM node:22-alpine
+# Web image (§12): deps → build (standalone) → runner (node:22-slim, non-root).
+# Build context is the repo root: docker build -f infra/docker/Dockerfile.web .
+#
+# pnpm is installed via COREPACK, not `npm install -g pnpm`. That matters: npm
+# installing pnpm inside the workspace makes pnpm try to verify its own native
+# binary (@pnpm/exe) against pnpm-lock.yaml, which fails with
+# "Cannot verify the identity of the @pnpm/exe.linux-x64 native binary".
+# Corepack takes the version from the root package.json `packageManager` field.
+#
+# Debian slim rather than Alpine: Prisma's engines want glibc + openssl, and
+# musl builds are an avoidable source of runtime surprises here.
 
-WORKDIR /app
+FROM node:22-slim AS base
+ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH
+RUN corepack enable && apt-get update \
+  && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+WORKDIR /repo
+
+# ---- build ----
+# The install happens in THIS stage, not a separate deps stage that gets copied
+# in. pnpm's node_modules is a symlink farm pointing into .pnpm/; copying that
+# across stages is fragile and broke Turbopack's internal next/font resolution.
+# Manifests are still copied before the source, so editing a component does not
+# invalidate the install layer.
+FROM base AS build
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY apps/web/package.json            apps/web/
+COPY apps/worker/package.json         apps/worker/
+COPY packages/core/package.json       packages/core/
+COPY packages/db/package.json         packages/db/
+COPY packages/ui/package.json         packages/ui/
+COPY packages/config/package.json     packages/config/
+# @vaidyasala/db's postinstall runs `prisma generate`, which needs the schema.
+COPY packages/db/prisma packages/db/prisma
+RUN pnpm install --frozen-lockfile
+
 COPY . .
 
-RUN npm install -g pnpm
-RUN pnpm install --no-frozen-lockfile
+# Public listing pages (/latest, /trending, topic + watch hubs) are statically
+# rendered, so `next build` queries the database. Supply a reachable DATABASE_URL
+# to prerender real content:
+#
+#   docker build --build-arg DATABASE_URL="postgresql://…" -f …/Dockerfile.web .
+#
+# Without it the build still succeeds — generateStaticParams degrades to
+# on-demand rendering (lib/static-params.ts) — but any page that queries the DB
+# at the top level will fail the export, so pass it when building on the VPS.
+# It is a build ARG, not an ENV: it must not be baked into the final image, and
+# the runner stage below never sees it.
+ARG DATABASE_URL=""
+ENV DATABASE_URL=$DATABASE_URL
 
-RUN pnpm --filter @vaidyasala/db generate
-RUN pnpm --filter @vaidyasala/web build
+RUN pnpm --filter @vaidyasala/db generate \
+  && pnpm --filter @vaidyasala/web build
 
-ENV NODE_ENV production
+# ---- runner ----
+FROM node:22-slim AS runner
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends openssl ca-certificates wget \
+  && rm -rf /var/lib/apt/lists/*
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    PORT=3000 \
+    HOSTNAME=0.0.0.0
+WORKDIR /app
+
+# Next's standalone output bundles only the traced runtime deps, so the runner
+# needs no package manager and no node_modules install of its own.
+COPY --from=build /repo/apps/web/.next/standalone ./
+COPY --from=build /repo/apps/web/.next/static     ./apps/web/.next/static
+COPY --from=build /repo/apps/web/public           ./apps/web/public
+
+USER node
 EXPOSE 3000
 
-CMD ["pnpm", "--filter", "@vaidyasala/web", "start"]
+HEALTHCHECK --interval=15s --timeout=5s --start-period=40s --retries=5 \
+  CMD wget -qO- http://127.0.0.1:3000/api/health >/dev/null 2>&1 || exit 1
+
+# `next start` does NOT work with output:"standalone" — Next says so at boot.
+# The generated server is the supported entrypoint.
+CMD ["node", "apps/web/server.js"]

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import { VideoCard } from "@vaidyasala/ui";
 import { getArticleBySlug, publishedArticleSlugs } from "@/lib/feeds";
+import { safeStaticParams } from "@/lib/static-params";
 import { MedicalDisclaimer } from "@/components/seo/medical-disclaimer";
 import {
   JsonLd,
@@ -18,7 +19,10 @@ export const revalidate = 600;
 export const dynamicParams = true;
 
 export async function generateStaticParams(): Promise<{ slug: string }[]> {
-  return (await publishedArticleSlugs()).map((slug) => ({ slug }));
+  return safeStaticParams(
+    async () => (await publishedArticleSlugs()).map((slug) => ({ slug })),
+    "articles",
+  );
 }
 
 export async function generateMetadata({

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getVideoBySlug, publishedSlugs } from "@/lib/video";
+import { safeStaticParams } from "@/lib/static-params";
 import { WatchExperience } from "@/components/video/watch-experience";
 import { MedicalDisclaimer } from "@/components/seo/medical-disclaimer";
 import {
@@ -20,8 +21,10 @@ export const revalidate = 3600;
 export const dynamicParams = true;
 
 export async function generateStaticParams(): Promise<{ slug: string }[]> {
-  const slugs = await publishedSlugs();
-  return slugs.map((slug) => ({ slug }));
+  return safeStaticParams(
+    async () => (await publishedSlugs()).map((slug) => ({ slug })),
+    "watch",
+  );
 }
 
 export async function generateMetadata({

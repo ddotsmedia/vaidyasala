@@ -13,8 +13,12 @@ RUN corepack enable && apt-get update \
   && rm -rf /var/lib/apt/lists/*
 WORKDIR /repo
 
-# ---- deps ----
-FROM base AS deps
+# ---- build ----
+# Install in this stage rather than copying node_modules from a deps stage:
+# pnpm's node_modules is a symlink farm into .pnpm/, and copying it across
+# stages breaks resolution in subtle ways. Manifests first so the install layer
+# still caches across source edits.
+FROM base AS build
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY apps/web/package.json            apps/web/
 COPY apps/worker/package.json         apps/worker/
@@ -25,11 +29,6 @@ COPY packages/config/package.json     packages/config/
 COPY packages/db/prisma packages/db/prisma
 RUN pnpm install --frozen-lockfile
 
-# ---- build ----
-FROM base AS build
-COPY --from=deps /repo/node_modules ./node_modules
-COPY --from=deps /repo/apps/worker/node_modules ./apps/worker/node_modules
-COPY --from=deps /repo/packages ./packages
 COPY . .
 RUN pnpm --filter @vaidyasala/db generate \
   && pnpm --filter @vaidyasala/worker build:bundle
@@ -48,10 +47,13 @@ RUN apt-get update \
 ENV NODE_ENV=production
 WORKDIR /app
 
-# The bundle plus the externals it expects, and the Prisma schema/migrations so the
-# deploy job can run `prisma migrate deploy` from this image.
-COPY --from=build /repo/apps/worker/dist-bundle      ./dist-bundle
+# Mirror the repo layout exactly. pnpm's node_modules entries are RELATIVE
+# symlinks into ../../node_modules/.pnpm/…, so flattening the tree silently
+# breaks them: the bundle built fine but died at boot with
+# "Cannot find package 'bullmq'" because /app/apps/worker/node_modules was not
+# on the resolution path from /app/dist-bundle/main.js.
 COPY --from=build /repo/node_modules                 ./node_modules
+COPY --from=build /repo/apps/worker/dist-bundle      ./apps/worker/dist-bundle
 COPY --from=build /repo/apps/worker/node_modules     ./apps/worker/node_modules
 COPY --from=build /repo/packages/db/prisma           ./packages/db/prisma
 COPY --from=build /repo/packages/db/node_modules     ./packages/db/node_modules
@@ -61,4 +63,4 @@ USER node
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD node -e "process.exit(0)"
 
-CMD ["node", "dist-bundle/main.js"]
+CMD ["node", "apps/worker/dist-bundle/main.js"]
