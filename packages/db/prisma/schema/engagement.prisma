@@ -17,13 +17,34 @@ model WatchProgress {
   viewerKey   String // "u:{userId}" | "a:{anonId}"
   userId      String?
   videoId     String
-  positionSec Int
+  positionSec Int // doubles as "resume at" — the player starts here
+  /// Furthest point reached, 0-100. Kept separately from positionSec because a
+  /// viewer who watches to the end then scrubs back still counts as 100%.
+  watchedPercentage Int @default(0)
   completed   Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@unique([viewerKey, videoId])
   @@index([updatedAt])
+  @@index([userId])
+}
+
+/// Like + bookmark for a viewer/video pair. Follows WatchProgress: keyed by the
+/// same anonymous-or-user viewerKey with no FK to Video, so anonymous reactions
+/// survive sign-in via the existing viewerKey merge.
+model VideoReaction {
+  id         String   @id @default(cuid())
+  viewerKey  String
+  userId     String?
+  videoId    String
+  liked      Boolean  @default(false)
+  bookmarked Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([viewerKey, videoId])
+  @@index([videoId])
   @@index([userId])
 }
 

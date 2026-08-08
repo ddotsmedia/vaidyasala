@@ -12,11 +12,20 @@ export function ProgressBeacon({ videoId }: { videoId: string }) {
   const { currentTime, isPlaying, ended, duration } = usePlayer();
   const lastSent = useRef(0);
   const posRef = useRef(0);
+  const durRef = useRef(0);
   posRef.current = Math.floor(currentTime);
+  durRef.current = duration;
 
   const send = (positionSec: number, completed: boolean, beacon = false) => {
     if (positionSec <= 0 && !completed) return;
-    const payload = JSON.stringify({ videoId, positionSec, completed });
+    // Furthest point reached as a percentage; the server keeps the max, so
+    // scrubbing backwards never lowers it.
+    const watchedPercentage = completed
+      ? 100
+      : durRef.current > 0
+        ? Math.min(100, Math.round((positionSec / durRef.current) * 100))
+        : 0;
+    const payload = JSON.stringify({ videoId, positionSec, completed, watchedPercentage });
     if (beacon && typeof navigator !== "undefined" && navigator.sendBeacon) {
       navigator.sendBeacon("/api/v1/progress", new Blob([payload], { type: "application/json" }));
     } else {

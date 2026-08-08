@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { validation } from "@vaidyasala/core";
-import { prisma } from "@vaidyasala/db";
-import { getViewerKey } from "@/lib/viewer";
-import { getResumePosition } from "@/lib/progress";
+import { getResumePosition, recordProgress } from "@/lib/progress";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -37,20 +35,6 @@ export async function POST(req: Request): Promise<Response> {
   const parsed = validation.progressInputSchema.safeParse(json);
   if (!parsed.success) return new NextResponse(null, { status: 204 });
 
-  const { videoId, positionSec, completed } = parsed.data;
-  const { key, userId } = await getViewerKey(true);
-  if (!key) return new NextResponse(null, { status: 204 });
-
-  const existing = await prisma.watchProgress.findUnique({
-    where: { viewerKey_videoId: { viewerKey: key, videoId } },
-  });
-  const nextPos = existing ? Math.max(existing.positionSec, positionSec) : positionSec;
-
-  await prisma.watchProgress.upsert({
-    where: { viewerKey_videoId: { viewerKey: key, videoId } },
-    create: { viewerKey: key, userId, videoId, positionSec, completed },
-    update: { positionSec: nextPos, completed: completed || (existing?.completed ?? false), userId },
-  });
-
+  await recordProgress(parsed.data);
   return new NextResponse(null, { status: 204 });
 }

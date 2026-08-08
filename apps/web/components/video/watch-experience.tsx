@@ -13,7 +13,9 @@ import { TranscriptView } from "./transcript-view";
 import { FaqAccordion } from "./faq-accordion";
 import { LazyInView } from "./lazy-in-view";
 import { ProgressBeacon } from "./progress-beacon";
-import { CommentSection } from "./comment-section";
+import { CommentsSheet } from "./comments-sheet";
+import { ReactionBar } from "./reaction-bar";
+import { SubscribeStickyAside, SubscribeStickyBar } from "./subscribe-sticky";
 
 // Interaction/scroll-only islands — split into their own chunks and mounted only
 // when needed (§3D). Motion lives only in these three, so it leaves the initial
@@ -143,15 +145,18 @@ function WatchLayout({ data }: { data: WatchData }) {
 
           <SummaryCard
             summaryMl={data.summaryMl}
+            summaryEn={data.summaryEn}
             durationSec={data.durationSec}
             topic={data.topic}
             publishedAt={data.publishedAt}
+            viewCount={data.viewCount}
           />
 
           <div className="flex flex-wrap items-center gap-3">
             <ShareSheet url={shareUrl} title={data.titleMl} utmSource="watch">
               <Button variant="outline">Share</Button>
             </ShareSheet>
+            <ReactionBar videoId={data.id} />
             <AudioModeBar text={data.summaryMl ?? ""} />
           </div>
 
@@ -170,17 +175,33 @@ function WatchLayout({ data }: { data: WatchData }) {
           </LazyInView>
 
           <KeyTakeaways takeaways={data.takeaways} />
+          {/* Chapters live in the sidebar on desktop; that column stacks below
+              the fold on mobile, so a collapsed copy rides here instead. */}
+          <div className="lg:hidden">
+            <ChapterList chapters={data.chapters} videoId={data.id} collapsible />
+          </div>
           <TranscriptView segments={data.segments} />
           <FaqAccordion faqs={data.faqs} />
           <LazyInView minHeight={120}>
-            <CommentSection videoId={data.id} />
+            <CommentsSheet videoId={data.id} />
           </LazyInView>
         </div>
 
-        <aside className="flex flex-col gap-6">
+        <aside className="hidden flex-col gap-6 lg:flex">
+          <SubscribeStickyAside
+            channelUrl={data.channelUrl}
+            subscriberCount={data.subscriberCount}
+            videoId={data.id}
+          />
           <ChapterList chapters={data.chapters} videoId={data.id} />
         </aside>
       </div>
+
+      <SubscribeStickyBar
+        channelUrl={data.channelUrl}
+        subscriberCount={data.subscriberCount}
+        videoId={data.id}
+      />
 
       {data.related.length > 0 ? (
         <LazyInView minHeight={280}>

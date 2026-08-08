@@ -63,6 +63,55 @@ export async function getContinueWatching(limit = 12): Promise<ContinueItem[]> {
     .filter((x): x is ContinueItem => x !== null);
 }
 
+/**
+ * Record watch progress for the current viewer. Shared by the beacon endpoint
+ * (/api/v1/progress) and /api/videos/[id]/watch-progress so there is one write
+ * path, not two that can drift.
+ *
+ * Position and percentage only ever advance: beacons arrive out of order, and a
+ * viewer who scrubs backwards has still watched what they watched.
+ */
+export async function recordProgress(input: {
+  videoId: string;
+  positionSec: number;
+  completed?: boolean;
+  watchedPercentage?: number;
+}): Promise<{ positionSec: number; watchedPercentage: number; completed: boolean } | null> {
+  const { key, userId } = await getViewerKey(true);
+  if (!key) return null;
+
+  const where = { viewerKey_videoId: { viewerKey: key, videoId: input.videoId } };
+  const existing = await prisma.watchProgress.findUnique({ where });
+
+  const positionSec = existing
+    ? Math.max(existing.positionSec, input.positionSec)
+    : input.positionSec;
+  const watchedPercentage = Math.max(
+    existing?.watchedPercentage ?? 0,
+    input.watchedPercentage ?? 0,
+  );
+  const completed = Boolean(input.completed) || (existing?.completed ?? false);
+
+  const row = await prisma.watchProgress.upsert({
+    where,
+    create: {
+      viewerKey: key,
+      userId,
+      videoId: input.videoId,
+      positionSec: input.positionSec,
+      watchedPercentage,
+      completed,
+    },
+    update: { positionSec, watchedPercentage, completed, userId },
+  });
+
+  return {
+    positionSec: row.positionSec,
+    watchedPercentage: row.watchedPercentage,
+    completed: row.completed,
+  };
+}
+
 /** Saved resume position for one video (§6.1 resume-at-position). */
 export async function getResumePosition(videoId: string): Promise<number> {
   const { key } = await getViewerKey(false);

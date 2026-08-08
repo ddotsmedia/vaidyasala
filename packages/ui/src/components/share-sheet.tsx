@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Copy, Facebook, MessageCircle } from "lucide-react";
+import { Copy, Facebook, MessageCircle, Twitter } from "lucide-react";
 import { Button } from "../primitives/button";
 import {
   Dialog,
@@ -30,6 +30,7 @@ function withUtm(url: string, medium: string, source: string): string {
 export function ShareSheet({ url, title, utmSource = "share", children }: ShareSheetProps) {
   const wa = `https://wa.me/?text=${encodeURIComponent(`${title} ${withUtm(url, "whatsapp", utmSource)}`)}`;
   const fb = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(withUtm(url, "facebook", utmSource))}`;
+  const tw = `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(withUtm(url, "twitter", utmSource))}`;
 
   return (
     <Dialog>
@@ -47,6 +48,11 @@ export function ShareSheet({ url, title, utmSource = "share", children }: ShareS
           <Button asChild variant="outline">
             <a href={fb} target="_blank" rel="noopener noreferrer">
               <Facebook className="size-4" /> Facebook
+            </a>
+          </Button>
+          <Button asChild variant="outline">
+            <a href={tw} target="_blank" rel="noopener noreferrer">
+              <Twitter className="size-4" /> X
             </a>
           </Button>
           <Button

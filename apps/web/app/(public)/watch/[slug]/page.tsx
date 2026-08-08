@@ -14,7 +14,9 @@ import {
 } from "@/lib/seo";
 
 // ISR: statically generated, revalidated on publish (§11) + full JSON-LD/OG (§7).
-export const revalidate = 300;
+// 1h background window; publish/edit still busts it immediately via revalidateTag,
+// so the longer window costs freshness only for view-count drift.
+export const revalidate = 3600;
 export const dynamicParams = true;
 
 export async function generateStaticParams(): Promise<{ slug: string }[]> {
@@ -53,7 +55,9 @@ export default async function WatchPage({ params }: { params: Promise<{ slug: st
   ];
 
   return (
-    <article className="py-6">
+    // pb-28 on mobile clears the fixed subscribe bar; lg drops it since the bar
+    // moves into the sidebar there.
+    <article className="py-6 pb-28 lg:pb-6">
       <JsonLd
         data={[
           videoObjectLd({

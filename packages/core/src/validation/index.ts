@@ -63,8 +63,17 @@ export const progressInputSchema = z.object({
   videoId: z.string().min(1).max(64),
   positionSec: z.coerce.number().int().nonnegative().max(86_400),
   completed: z.coerce.boolean().optional().default(false),
+  /** Furthest point reached, 0-100. Optional so existing beacons stay valid. */
+  watchedPercentage: z.coerce.number().int().min(0).max(100).optional(),
 });
 export type ProgressInput = z.infer<typeof progressInputSchema>;
+
+/** Like/bookmark toggle (§13 POST /api/videos/[id]/reaction). */
+export const reactionInputSchema = z.object({
+  liked: z.boolean().optional(),
+  bookmarked: z.boolean().optional(),
+});
+export type ReactionInput = z.infer<typeof reactionInputSchema>;
 
 /** Comment submission (§13 POST /api/v1/comments). */
 export const commentInputSchema = z.object({

@@ -1,10 +1,36 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { formatDuration } from "@vaidyasala/ui";
 import type { TranscriptSegment } from "@vaidyasala/core/validation";
 import { usePlayer } from "./player-context";
 
 type Lang = "ml" | "en";
+
+/**
+ * Wrap occurrences of `needle` in <mark>. Split on the lowercased haystack but
+ * slice from the original, so Malayalam text is never re-cased in the output.
+ */
+function highlight(text: string, needle: string): React.ReactNode {
+  const hay = text.toLocaleLowerCase();
+  const find = needle.toLocaleLowerCase();
+  const out: React.ReactNode[] = [];
+  let from = 0;
+  for (;;) {
+    const at = hay.indexOf(find, from);
+    if (at === -1) break;
+    if (at > from) out.push(text.slice(from, at));
+    out.push(
+      <mark key={at} className="bg-brand/20 text-text rounded-sm px-0.5">
+        {text.slice(at, at + needle.length)}
+      </mark>,
+    );
+    from = at + needle.length;
+  }
+  if (out.length === 0) return text;
+  if (from < text.length) out.push(text.slice(from));
+  return out;
+}
 
 /**
  * TranscriptView (§4): playhead-synced, ML/EN toggle, reading mode. The active
@@ -15,6 +41,9 @@ export function TranscriptView({ segments }: { segments: TranscriptSegment[] }) 
   const { currentTime, seekTo } = usePlayer();
   const [lang, setLang] = useState<Lang>("ml");
   const [reading, setReading] = useState(false);
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(true);
+  const bodyId = useId();
   const activeRef = useRef<HTMLButtonElement>(null);
 
   const activeIndex = useMemo(
@@ -22,17 +51,49 @@ export function TranscriptView({ segments }: { segments: TranscriptSegment[] }) 
     [segments, currentTime],
   );
 
+  const trimmed = query.trim();
+  const matches = useMemo(() => {
+    if (!trimmed) return null;
+    const needle = trimmed.toLocaleLowerCase();
+    const hits = new Set<number>();
+    segments.forEach((s, i) => {
+      const hay = `${s.textMl} ${s.textEn ?? ""}`.toLocaleLowerCase();
+      if (hay.includes(needle)) hits.add(i);
+    });
+    return hits;
+  }, [segments, trimmed]);
+
   useEffect(() => {
+    // Auto-scroll follows the playhead, but not while the viewer is reading
+    // search results — yanking the list out from under them is hostile.
+    if (matches) return;
     if (activeIndex >= 0) activeRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-  }, [activeIndex]);
+  }, [activeIndex, matches]);
 
   if (segments.length === 0) return null;
 
   return (
     <section className="flex flex-col gap-3" aria-label="Transcript">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Transcript</h2>
-        <div className="flex items-center gap-2 text-sm">
+      <div className="flex items-center justify-between gap-3">
+        {/* On mobile the heading doubles as the collapse toggle — a transcript is
+            the longest thing on the page and pushes everything else off-screen.
+            From md up it is a plain heading and the body is always shown. */}
+        <h2 className="text-lg font-semibold">
+          <button
+            type="button"
+            onClick={() => setOpen((o) => !o)}
+            aria-expanded={open}
+            aria-controls={bodyId}
+            className="focus-visible:outline-focus flex min-h-11 items-center gap-2 focus-visible:outline-2 md:pointer-events-none"
+          >
+            Transcript
+            <ChevronDown
+              className={`text-text-dim size-5 transition-transform md:hidden ${open ? "rotate-180" : ""}`}
+              aria-hidden
+            />
+          </button>
+        </h2>
+        <div className={`items-center gap-2 text-sm ${open ? "flex" : "hidden"} md:flex`}>
           <button
             type="button"
             onClick={() => setLang((l) => (l === "ml" ? "en" : "ml"))}
@@ -51,7 +112,35 @@ export function TranscriptView({ segments }: { segments: TranscriptSegment[] }) 
         </div>
       </div>
 
-      <div className={reading ? "max-h-none" : "border-border max-h-[28rem] overflow-y-auto rounded-lg border"}>
+      {!reading ? (
+        <div className={`items-center gap-2 ${open ? "flex" : "hidden"} md:flex`}>
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search transcript"
+            aria-label="Search transcript"
+            className="border-border bg-surface focus-visible:outline-focus font-ml min-w-0 flex-1 rounded-md border px-3 py-2 text-sm leading-[1.7] focus-visible:outline-2"
+          />
+          {matches ? (
+            <span aria-live="polite" className="text-text-dim shrink-0 text-xs tabular-nums">
+              {matches.size} {matches.size === 1 ? "match" : "matches"}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div
+        id={bodyId}
+        className={`${open ? "block" : "hidden"} md:block ${
+          reading ? "max-h-none" : "border-border max-h-[28rem] overflow-y-auto rounded-lg border"
+        }`}
+      >
+        {matches?.size === 0 ? (
+          <p className="text-text-dim px-3 py-6 text-center text-sm">
+            No transcript lines match “{trimmed}”.
+          </p>
+        ) : null}
         {reading ? (
           <p className="font-ml text-base leading-[1.9]" lang={lang}>
             {segments.map((s) => (lang === "ml" ? s.textMl : (s.textEn ?? s.textMl))).join(" ")}
@@ -59,6 +148,7 @@ export function TranscriptView({ segments }: { segments: TranscriptSegment[] }) 
         ) : (
           <ul>
             {segments.map((s, i) => {
+              if (matches && !matches.has(i)) return null;
               const text = lang === "ml" ? s.textMl : (s.textEn ?? s.textMl);
               const active = i === activeIndex;
               return (
@@ -79,7 +169,7 @@ export function TranscriptView({ segments }: { segments: TranscriptSegment[] }) 
                       className="font-ml leading-[1.8]"
                       lang={lang === "ml" ? "ml" : undefined}
                     >
-                      {text}
+                      {trimmed ? highlight(text, trimmed) : text}
                     </span>
                   </button>
                 </li>
