@@ -19,7 +19,10 @@ WORKDIR /repo
 # stages breaks resolution in subtle ways. Manifests first so the install layer
 # still caches across source edits.
 FROM base AS build
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+# pnpm-lock.yaml* (glob) so the build still works if the lockfile is absent —
+# it was deleted on main once already. package.json matching keeps this COPY
+# valid even when the glob matches nothing.
+COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml turbo.json ./
 COPY apps/web/package.json            apps/web/
 COPY apps/worker/package.json         apps/worker/
 COPY packages/core/package.json       packages/core/
@@ -27,7 +30,13 @@ COPY packages/db/package.json         packages/db/
 COPY packages/ui/package.json         packages/ui/
 COPY packages/config/package.json     packages/config/
 COPY packages/db/prisma packages/db/prisma
-RUN pnpm install --frozen-lockfile
+# Reproducible when the lockfile is committed; still builds when it is not.
+RUN if [ -f pnpm-lock.yaml ]; then \
+      pnpm install --frozen-lockfile; \
+    else \
+      echo "WARNING: no pnpm-lock.yaml - resolving fresh, build is not reproducible"; \
+      pnpm install --no-frozen-lockfile; \
+    fi
 
 COPY . .
 RUN pnpm --filter @vaidyasala/db generate \
