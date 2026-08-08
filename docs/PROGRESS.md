@@ -50,6 +50,14 @@ Phase 7 deploy still STALLED — not deployed, see blockers.
   Not created deliberately: app/page.tsx (duplicate route), Category model (= Topic),
   EmailSubscriber model (= NewsletterSubscriber).
 
+- ✓ Phase 2C topic hubs (eedda7f). Both pages existed; gaps filled: topic-name search on
+  /topics (ML/EN/slug), icons+descriptions on cards, related topics (ranked by shared
+  videos → same kind → catalogue size), sort (latest/trending/duration), duration filter,
+  12/page pagination, and a VISIBLE breadcrumb (only JSON-LD existed before). Rules live
+  in lib/topic-browse.ts as pure functions shared by the client controls and
+  GET /api/categories/[slug]/videos, with 7 unit tests on band boundaries + page clamping.
+  ISR 600 → 3600; both routes stay static. No migration.
+
 ## Next step
 Deploy is NOT done. Before any deploy: fill WEB_PORT + EXISTING_PROXY=nginx in
 VARIABLES.md from the audit, then follow docs/GO-LIVE-MANUAL.md.
