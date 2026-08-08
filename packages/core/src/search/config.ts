@@ -25,8 +25,12 @@ export const INDEX_SETTINGS: Record<SearchIndex, IndexSettings> = {
       "faqs",
       "transcript",
     ],
-    filterableAttributes: ["status", "topicSlug"],
-    sortableAttributes: ["publishedAt"],
+    // durationSec is filterable (length bands) and publishedAt/viewCount are
+    // sortable (date / most-viewed). Meili rejects a filter or sort on an
+    // attribute that is not declared here, so these must stay in step with
+    // SearchOptions in ./client.
+    filterableAttributes: ["status", "topicSlug", "durationSec", "publishedAt"],
+    sortableAttributes: ["publishedAt", "viewCount", "durationSec"],
   },
   articles: {
     searchableAttributes: ["titleMl", "titleEn", "summary", "body"],

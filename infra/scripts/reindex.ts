@@ -42,6 +42,10 @@ async function main(): Promise<void> {
         status: v.status,
         durationSec: v.durationSec,
         publishedAt: v.publishedAt,
+        viewCount:
+          typeof (v.stats as { views?: unknown } | null)?.views === "number"
+            ? ((v.stats as { views: number }).views)
+            : null,
         primaryTopic: v.primaryTopic,
         summaryMl: v.enrichment?.summaryMl,
         summaryEn: v.enrichment?.summaryEn,

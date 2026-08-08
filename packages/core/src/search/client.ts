@@ -9,6 +9,7 @@ import {
   type QueryScript,
   type TopicSearchDoc,
 } from "./config";
+import { buildVideoFilter, buildVideoSort, type SearchFilters } from "./filters";
 
 export interface SearchGroupItem {
   id: string;
@@ -103,18 +104,37 @@ export class SearchClient {
     for (const name of SEARCH_INDEXES) await this.client.index(name).updateSynonyms(syn);
   }
 
-  /** Grouped instant search across all four indexes (§14). */
-  async search(query: string, limitPerIndex = 5): Promise<SearchResults> {
+  /**
+   * Grouped instant search across all four indexes (§14).
+   *
+   * `filters` apply to the videos index only — duration and publish date are
+   * video properties, and a topic or FAQ has no length. Sorting likewise: the
+   * other groups stay in relevance order.
+   */
+  async search(
+    query: string,
+    limitPerIndex = 5,
+    filters: SearchFilters = {},
+  ): Promise<SearchResults> {
     const script = classifyScript(query);
     const q = query.trim();
     if (!q) return { script, groups: [], total: 0 };
+
+    const videoFilter = buildVideoFilter(filters);
+    const videoSort = buildVideoSort(filters.sort);
 
     const res = await this.client.multiSearch({
       queries: SEARCH_INDEXES.map((indexUid) => ({
         indexUid,
         q,
         limit: limitPerIndex,
-        filter: indexUid === "videos" || indexUid === "articles" ? "status = PUBLISHED" : undefined,
+        filter:
+          indexUid === "videos"
+            ? videoFilter
+            : indexUid === "articles"
+              ? "status = PUBLISHED"
+              : undefined,
+        sort: indexUid === "videos" ? videoSort : undefined,
       })),
     });
 

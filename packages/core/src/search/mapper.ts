@@ -13,6 +13,8 @@ export interface VideoSearchSource {
   status: string;
   durationSec: number;
   publishedAt?: Date | null;
+  /** From Video.stats.views. Sort key for "most viewed". */
+  viewCount?: number | null;
   primaryTopic?: { slug: string; nameMl: string; nameEn: string } | null;
   summaryMl?: string | null;
   summaryEn?: string | null;
@@ -31,6 +33,7 @@ export interface VideoSearchDoc {
   status: string;
   durationSec: number;
   publishedAt: number | null;
+  viewCount: number;
   topicSlug: string | null;
   topicNames: string[];
   keywords: string[];
@@ -56,6 +59,10 @@ export function buildVideoSearchDoc(v: VideoSearchSource): VideoSearchDoc {
     status: v.status,
     durationSec: v.durationSec,
     publishedAt: v.publishedAt ? v.publishedAt.getTime() : null,
+    // 0 rather than null: Meili sorts missing values last regardless of
+    // direction, which would park unstatted videos at the top of an ascending
+    // sort.
+    viewCount: v.viewCount ?? 0,
     topicSlug: v.primaryTopic?.slug ?? null,
     topicNames: v.primaryTopic ? [v.primaryTopic.nameMl, v.primaryTopic.nameEn] : [],
     keywords: (v.keywords ?? []).flatMap((k) => [k.termMl, k.termEn].filter(Boolean) as string[]),

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { validation } from "@vaidyasala/core";
 import { prisma } from "@vaidyasala/db";
 import { searchWithManglish } from "@/lib/search";
+import { getFallbackTopics } from "@/lib/search-suggest";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -22,20 +23,28 @@ export async function GET(req: Request): Promise<NextResponse> {
   const parsed = validation.searchQuerySchema.safeParse({
     q: url.searchParams.get("q") ?? "",
     limit: url.searchParams.get("limit") ?? undefined,
+    duration: url.searchParams.get("duration") ?? undefined,
+    date: url.searchParams.get("date") ?? undefined,
+    sort: url.searchParams.get("sort") ?? undefined,
+    topicSlug: url.searchParams.get("topicSlug") ?? undefined,
   });
   if (!parsed.success) {
     return NextResponse.json({ error: "validation", issues: parsed.error.flatten() }, { status: 422 });
   }
-  const { q, limit } = parsed.data;
+  const { q, limit, duration, date, sort, topicSlug } = parsed.data;
 
-  const results = await searchWithManglish(q, limit);
+  const results = await searchWithManglish(q, limit, { duration, date, sort, topicSlug });
+
+  // A dead end is the one result worth enriching: offer somewhere to go next.
+  const fallbackTopics = results.total === 0 ? await getFallbackTopics() : [];
 
   // Fire-and-forget query log (never block the response).
   void prisma.searchQueryLog
     .create({ data: { query: q, script: results.script, results: results.total } })
     .catch(() => {});
 
-  return NextResponse.json(results, {
-    headers: { "cache-control": "no-store" },
-  });
+  return NextResponse.json(
+    { ...results, fallbackTopics },
+    { headers: { "cache-control": "no-store" } },
+  );
 }

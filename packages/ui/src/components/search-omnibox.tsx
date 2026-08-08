@@ -46,7 +46,10 @@ export function SearchOmnibox({
 }: SearchOmniboxProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl p-0">
+      {/* Full-screen on phones — a centred card wastes the viewport and puts the
+          input under the on-screen keyboard. From sm up it is the usual palette.
+          Escape and the hardware back button both close it via Dialog. */}
+      <DialogContent className="inset-0 h-dvh max-h-dvh w-screen max-w-none translate-x-0 translate-y-0 rounded-none p-0 sm:inset-auto sm:left-1/2 sm:top-1/2 sm:h-auto sm:max-h-[80vh] sm:w-full sm:max-w-xl sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-lg">
         <Command shouldFilter={false}>
           <div className="relative">
             <CommandInput

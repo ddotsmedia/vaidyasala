@@ -1,6 +1,10 @@
 import "server-only";
 import { SearchClient, type SearchResults } from "@vaidyasala/core/search/client";
-import { classifyScript, resolveManglish } from "@vaidyasala/core/search";
+import {
+  classifyScript,
+  resolveManglish,
+  type SearchFilters,
+} from "@vaidyasala/core/search";
 import { prisma } from "@vaidyasala/db";
 import { env } from "./env";
 
@@ -51,15 +55,19 @@ function mergeResults(a: SearchResults, b: SearchResults): SearchResults {
  * transliteration/synonym candidate and merges — so "prameham" / "mudi kozhichil"
  * reach the Malayalam content even when Meili's synonyms don't cover the term.
  */
-export async function searchWithManglish(q: string, limit = 5): Promise<SearchResults> {
+export async function searchWithManglish(
+  q: string,
+  limit = 5,
+  filters: SearchFilters = {},
+): Promise<SearchResults> {
   if (!searchClient) return { script: classifyScript(q), groups: [], total: 0 };
-  const primary = await searchClient.search(q, limit);
+  const primary = await searchClient.search(q, limit, filters);
   if (primary.script !== "manglish" || primary.total >= 3) return primary;
 
   const { candidates } = resolveManglish(q, await approvedSynonyms());
   let merged = primary;
   for (const cand of candidates.slice(0, 2)) {
-    const extra = await searchClient.search(cand, limit);
+    const extra = await searchClient.search(cand, limit, filters);
     merged = mergeResults(merged, extra);
     if (merged.total >= 5) break;
   }

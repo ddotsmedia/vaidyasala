@@ -20,6 +20,10 @@ export const indexSearchStage: StageFactory = (deps) => async ({ videoId }) => {
   });
   if (!video) throw new Error(`index-search: no video ${videoId}`);
 
+  // Video.stats is free-form JSON from the YouTube sync; read views defensively.
+  const stats = video.stats as { views?: unknown } | null;
+  const views = typeof stats?.views === "number" ? stats.views : null;
+
   const doc = buildVideoSearchDoc({
     id: video.id,
     slug: video.slug,
@@ -28,6 +32,7 @@ export const indexSearchStage: StageFactory = (deps) => async ({ videoId }) => {
     status: video.status,
     durationSec: video.durationSec,
     publishedAt: video.publishedAt,
+    viewCount: views,
     primaryTopic: video.primaryTopic,
     summaryMl: video.enrichment?.summaryMl,
     summaryEn: video.enrichment?.summaryEn,

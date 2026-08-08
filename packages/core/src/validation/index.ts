@@ -49,6 +49,11 @@ export type FunnelEvent = (typeof FUNNEL_EVENTS)[keyof typeof FUNNEL_EVENTS];
 export const searchQuerySchema = z.object({
   q: z.string().trim().min(1).max(120),
   limit: z.coerce.number().int().min(1).max(10).default(5),
+  // Video-only refinements (§14). Absent ⇒ unfiltered, relevance order.
+  duration: z.enum(["any", "short", "medium", "long"]).default("any"),
+  date: z.enum(["any", "week", "month", "year"]).default("any"),
+  sort: z.enum(["relevance", "date", "views"]).default("relevance"),
+  topicSlug: z.string().max(80).optional(),
 });
 export type SearchQueryInput = z.infer<typeof searchQuerySchema>;
 
