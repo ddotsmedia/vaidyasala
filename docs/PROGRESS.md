@@ -39,6 +39,17 @@ Phase 7 deploy still STALLED — not deployed, see blockers.
   Migration additive only (watchedPercentage default 0 + new VideoReaction table).
   Endpoints smoke-tested on the dev DB: progress monotonic, reactions toggle independently.
 
+- ✓ Phase 2B home-page gaps (3009144). Page already existed, so this filled gaps and fixed
+  a silent perf bug: home was rendering DYNAMIC because ContinueIsland read the viewer
+  cookie during render, so `revalidate` was inert. Continue-watching moved to a client
+  fetch of GET /api/v1/continue → home is now ○ Static, 30m revalidate. Added HeroFeatured
+  (priority LCP image, scrim overlay, one-tap), Video.featuredAt + admin "Feature on home"
+  toggle, components/video-carousel.tsx (scroll-snap + desktop arrows),
+  components/category-grid.tsx (2-col mobile → 4-col), per-topic rails (>=3 videos),
+  GET /api/videos?sortBy= and GET /api/categories?includeVideoCount=. ISR 300 → 1800.
+  Not created deliberately: app/page.tsx (duplicate route), Category model (= Topic),
+  EmailSubscriber model (= NewsletterSubscriber).
+
 ## Next step
 Deploy is NOT done. Before any deploy: fill WEB_PORT + EXISTING_PROXY=nginx in
 VARIABLES.md from the audit, then follow docs/GO-LIVE-MANUAL.md.
