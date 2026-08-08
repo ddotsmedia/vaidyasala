@@ -107,6 +107,7 @@ export interface TopicCard {
   nameEn: string;
   kind: string;
   videoCount: number;
+  descriptionMl?: string | null;
 }
 
 export async function getPopularTopics(limit = 8): Promise<TopicCard[]> {
@@ -234,7 +235,99 @@ export async function listTopics(): Promise<TopicCard[]> {
     nameEn: t.nameEn,
     kind: t.kind,
     videoCount: t._count.videos,
+    descriptionMl: t.descriptionMl,
   }));
+}
+
+/** A topic's video plus the fields its browser sorts and filters on. */
+export interface TopicVideoItem extends VideoCardData {
+  id: string;
+  publishedAt: string | null;
+  /** Plays in the trending window — the "trending" sort key. */
+  plays: number;
+}
+
+/**
+ * Play counts over a rolling window for a specific set of videos. Used to sort a
+ * topic hub by trending without re-running the global trending query.
+ */
+export async function getPlayCounts(
+  videoIds: string[],
+  days = 7,
+): Promise<Map<string, number>> {
+  if (videoIds.length === 0) return new Map();
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  const grouped = await prisma.analyticsEvent.groupBy({
+    by: ["videoId"],
+    where: { name: "play", createdAt: { gt: since }, videoId: { in: videoIds } },
+    _count: { _all: true },
+  });
+  return new Map(grouped.map((g) => [g.videoId as string, g._count._all]));
+}
+
+/**
+ * Sibling topics for cross-linking (§1.3). Ranked by how many videos they share
+ * with this one — a genuine content relationship rather than a name match —
+ * then topped up with same-kind topics so the section is never empty on a
+ * sparse catalogue.
+ */
+export async function getRelatedTopics(
+  topicId: string,
+  kind: string,
+  limit = 5,
+): Promise<TopicCard[]> {
+  const ownVideoIds = (
+    await prisma.topicVideo.findMany({ where: { topicId }, select: { videoId: true } })
+  ).map((tv) => tv.videoId);
+
+  const shared = ownVideoIds.length
+    ? await prisma.topicVideo.groupBy({
+        by: ["topicId"],
+        where: { videoId: { in: ownVideoIds }, topicId: { not: topicId } },
+        _count: { _all: true },
+        orderBy: { _count: { topicId: "desc" } },
+        take: limit,
+      })
+    : [];
+
+  const ids = shared.map((s) => s.topicId);
+
+  // Top up: same kind first (a nearer relative), then any other topic ranked by
+  // catalogue size. Without the second pass a site with one topic per kind shows
+  // an empty section, which is worse than a loose suggestion.
+  const fillIds: string[] = [];
+  for (const where of [
+    { kind: kind as never, id: { notIn: [topicId, ...ids] } },
+    { id: { notIn: [topicId, ...ids] } },
+  ]) {
+    const need = limit - ids.length - fillIds.length;
+    if (need <= 0) break;
+    const rows = await prisma.topic.findMany({
+      where: { ...where, id: { notIn: [topicId, ...ids, ...fillIds] } },
+      take: need,
+      orderBy: { videos: { _count: "desc" } },
+      select: { id: true },
+    });
+    fillIds.push(...rows.map((r) => r.id));
+  }
+
+  const orderedIds = [...ids, ...fillIds];
+  if (orderedIds.length === 0) return [];
+
+  const topics = await prisma.topic.findMany({
+    where: { id: { in: orderedIds } },
+    include: { _count: { select: { videos: true } } },
+  });
+  const rank = new Map(orderedIds.map((id, i) => [id, i]));
+  return topics
+    .sort((a, b) => (rank.get(a.id) ?? 0) - (rank.get(b.id) ?? 0))
+    .map((t) => ({
+      slug: t.slug,
+      nameMl: t.nameMl,
+      nameEn: t.nameEn,
+      kind: t.kind,
+      videoCount: t._count.videos,
+    }));
 }
 
 export async function getTopicBySlug(slug: string) {
@@ -243,14 +336,25 @@ export async function getTopicBySlug(slug: string) {
     include: {
       videos: {
         orderBy: { score: "desc" },
-        include: { video: { select: { ...cardSelect, status: true } } },
+        include: {
+          video: {
+            select: { ...cardSelect, id: true, status: true, publishedAt: true },
+          },
+        },
       },
     },
   });
   if (!topic) return null;
-  const videos = topic.videos
-    .filter((tv) => tv.video.status === "PUBLISHED")
-    .map((tv) => toCard(tv.video));
+
+  const published = topic.videos.filter((tv) => tv.video.status === "PUBLISHED");
+  const plays = await getPlayCounts(published.map((tv) => tv.video.id));
+  const videos: TopicVideoItem[] = published.map((tv) => ({
+    ...toCard(tv.video),
+    id: tv.video.id,
+    publishedAt: tv.video.publishedAt?.toISOString() ?? null,
+    plays: plays.get(tv.video.id) ?? 0,
+  }));
+  const relatedTopics = await getRelatedTopics(topic.id, topic.kind);
   const heroVideo = videos[0] ?? null;
   const articles = await prisma.article.findMany({
     where: { status: "PUBLISHED", video: { topics: { some: { topicId: topic.id } } } },
@@ -272,6 +376,7 @@ export async function getTopicBySlug(slug: string) {
     ayurconnectUrl: topic.ayurconnectUrl,
     heroVideo,
     videos,
+    relatedTopics,
     articles,
     faqs,
   };

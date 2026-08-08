@@ -1,57 +1,56 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { listTopics } from "@/lib/feeds";
+import { TopicIndex } from "@/components/topics/topic-index";
+import { Breadcrumbs } from "@/components/seo/breadcrumbs";
+import { JsonLd, pageMetadata, collectionPageLd, breadcrumbLd } from "@/lib/seo";
 
-export const metadata: Metadata = { title: "Topics" };
-export const revalidate = 600;
+export const revalidate = 3600;
 
-const KIND_LABEL: Record<string, string> = {
-  CONDITION: "Conditions",
-  TREATMENT: "Treatments",
-  LIFESTYLE: "Lifestyle",
-  HERB: "Herbs",
-  GENERAL: "General",
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Health topics",
+  description:
+    "Browse Malayalam health videos by topic — conditions, treatments, lifestyle and herbs.",
+  path: "/topics",
+});
 
 export default async function TopicsPage() {
   const topics = await listTopics();
-  const byKind = new Map<string, typeof topics>();
-  for (const t of topics) {
-    const arr = byKind.get(t.kind) ?? [];
-    arr.push(t);
-    byKind.set(t.kind, arr);
-  }
 
   return (
-    <div className="flex flex-col gap-8 py-8">
-      <h1 className="text-2xl font-semibold">Topics</h1>
+    <div className="flex flex-col gap-6 py-8">
+      <JsonLd
+        data={[
+          collectionPageLd({
+            name: "Health topics",
+            path: "/topics",
+            description: "All health topics covered on Vaidyasala.",
+            items: topics.map((t) => ({ slug: t.slug, titleMl: t.nameMl })),
+          }),
+          breadcrumbLd([
+            { name: "Home", path: "/" },
+            { name: "Topics", path: "/topics" },
+          ]),
+        ]}
+      />
+
+      <Breadcrumbs
+        crumbs={[
+          { name: "Home", path: "/" },
+          { name: "Topics", path: "/topics" },
+        ]}
+      />
+
+      <header className="flex flex-col gap-2">
+        <h1 className="text-2xl font-semibold tracking-tight">Health topics</h1>
+        <p className="text-text-dim max-w-2xl text-sm">
+          Every condition, treatment and lifestyle subject we cover, in Malayalam.
+        </p>
+      </header>
+
       {topics.length === 0 ? (
         <p className="text-text-dim text-sm">No topics yet.</p>
       ) : (
-        [...byKind.entries()].map(([kind, items]) => (
-          <section key={kind} className="flex flex-col gap-3">
-            <h2 className="text-text-dim text-sm font-medium uppercase tracking-wide">
-              {KIND_LABEL[kind] ?? kind}
-            </h2>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {items.map((t) => (
-                <Link
-                  key={t.slug}
-                  href={`/topics/${t.slug}`}
-                  className="border-border hover:bg-surface flex items-center justify-between rounded-lg border p-4"
-                >
-                  <span>
-                    <span className="font-ml block font-medium" lang="ml">
-                      {t.nameMl}
-                    </span>
-                    <span className="text-text-dim text-sm">{t.nameEn}</span>
-                  </span>
-                  <span className="text-text-dim text-xs">{t.videoCount} videos</span>
-                </Link>
-              ))}
-            </div>
-          </section>
-        ))
+        <TopicIndex topics={topics} />
       )}
     </div>
   );

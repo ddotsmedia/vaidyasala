@@ -38,12 +38,23 @@ function iconFor(topic: TopicCard): LucideIcon {
 }
 
 /**
- * Health-topic cards (§1.1). Two columns on mobile per the mobile-first spec,
- * widening to four on desktop. Topics with no published videos are dropped —
- * an empty category is a dead end.
+ * Health-topic cards (§1.1/§1.3). Two columns on mobile per the mobile-first
+ * spec, widening to four on desktop.
+ *
+ * Empty topics are dropped by default — on a discovery surface like the home
+ * page they are a dead end. The /topics index passes `showEmpty` because it is
+ * the complete listing and a topic missing from it would look like a bug.
  */
-export function CategoryGrid({ topics, limit = 8 }: { topics: TopicCard[]; limit?: number }) {
-  const shown = topics.filter((t) => t.videoCount > 0).slice(0, limit);
+export function CategoryGrid({
+  topics,
+  limit = 8,
+  showEmpty = false,
+}: {
+  topics: TopicCard[];
+  limit?: number;
+  showEmpty?: boolean;
+}) {
+  const shown = (showEmpty ? topics : topics.filter((t) => t.videoCount > 0)).slice(0, limit);
   if (shown.length === 0) return null;
 
   return (
@@ -62,6 +73,14 @@ export function CategoryGrid({ topics, limit = 8 }: { topics: TopicCard[]; limit
               <span className="font-ml text-sm font-medium leading-[1.7]" lang="ml">
                 {t.nameMl}
               </span>
+              {t.descriptionMl ? (
+                <span
+                  className="font-ml text-text-dim line-clamp-2 text-xs leading-[1.7]"
+                  lang="ml"
+                >
+                  {t.descriptionMl}
+                </span>
+              ) : null}
               <span className="text-text-dim mt-auto text-xs tabular-nums">
                 {t.videoCount} {t.videoCount === 1 ? "video" : "videos"}
               </span>

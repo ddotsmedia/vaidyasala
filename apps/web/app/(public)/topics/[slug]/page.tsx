@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTopicBySlug, publishedTopicSlugs } from "@/lib/feeds";
-import { VideoGrid } from "@/components/home/video-grid";
+import { TopicVideoBrowser } from "@/components/topics/topic-video-browser";
+import { CategoryGrid } from "@/components/category-grid";
+import { Breadcrumbs } from "@/components/seo/breadcrumbs";
 import { MedicalDisclaimer } from "@/components/seo/medical-disclaimer";
 import {
   JsonLd,
@@ -12,7 +14,7 @@ import {
   breadcrumbLd,
 } from "@/lib/seo";
 
-export const revalidate = 600;
+export const revalidate = 3600;
 export const dynamicParams = true;
 
 export async function generateStaticParams(): Promise<{ slug: string }[]> {
@@ -59,6 +61,14 @@ export default async function TopicHubPage({ params }: { params: Promise<{ slug:
           ]),
         ]}
       />
+      <Breadcrumbs
+        crumbs={[
+          { name: "Home", path: "/" },
+          { name: "Topics", path: "/topics" },
+          { name: topic.nameMl, path: `/topics/${topic.slug}`, lang: "ml" },
+        ]}
+      />
+
       <header className="flex flex-col gap-2">
         <p className="text-brand text-sm">{topic.nameEn}</p>
         <h1 className="font-ml text-3xl font-semibold" lang="ml">
@@ -83,8 +93,17 @@ export default async function TopicHubPage({ params }: { params: Promise<{ slug:
 
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">Videos</h2>
-        <VideoGrid videos={topic.videos} />
+        <TopicVideoBrowser videos={topic.videos} />
       </section>
+
+      {/* Related topics (§1.3 internal-link topology) — real crawlable links,
+          ranked by shared videos. */}
+      {topic.relatedTopics.length > 0 ? (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-lg font-semibold">Related topics</h2>
+          <CategoryGrid topics={topic.relatedTopics} limit={5} showEmpty />
+        </section>
+      ) : null}
 
       {topic.articles.length > 0 ? (
         <section className="flex flex-col gap-3">
