@@ -28,6 +28,17 @@ Phase 7 deploy still STALLED — not deployed, see blockers.
   worker bundle 82kb ✓ (after externalising @sentry/node — bundling it hit 1.5mb
   and breaks its require-hook instrumentation).
 
+- ✓ Phase 2A watch-page gaps (e317bf6). The page already existed (Phases 3+5), so this
+  filled real gaps and extended existing components rather than adding parallel ones:
+  transcript search (+<mark> highlight, auto-scroll paused while searching), like/bookmark
+  (VideoReaction + /api/videos/[id]/reaction, optimistic), English summary surfaced,
+  view count, mobile collapse built into transcript-view/chapter-list headings, comments
+  bottom sheet (<dialog>, fetches only when opened), persistent Subscribe CTA alongside
+  the §6.1 75% banner, X/Twitter share, GET /api/videos/[id]/enrichment (id or slug),
+  GET|POST /api/videos/[id]/watch-progress sharing one write path with the beacon, ISR 3600.
+  Migration additive only (watchedPercentage default 0 + new VideoReaction table).
+  Endpoints smoke-tested on the dev DB: progress monotonic, reactions toggle independently.
+
 ## Next step
 Deploy is NOT done. Before any deploy: fill WEB_PORT + EXISTING_PROXY=nginx in
 VARIABLES.md from the audit, then follow docs/GO-LIVE-MANUAL.md.
