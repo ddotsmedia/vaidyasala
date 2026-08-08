@@ -58,6 +58,13 @@ Phase 7 deploy still STALLED — not deployed, see blockers.
   GET /api/categories/[slug]/videos, with 7 unit tests on band boundaries + page clamping.
   ISR 600 → 3600; both routes stay static. No migration.
 
+- ✓ Phase 2D search gaps (6f3a0d6). Search existed from 4A+4B; added duration/date filters
+  and relevance/date/views sort (core/search/filters.ts, pure, shared by Meili client + API
+  + UI; same duration bands as topic hubs), viewCount in the video doc, zero-result topic
+  suggestions, GET /api/v1/search/suggestions (popular searches with results>0), and a
+  full-screen mobile palette. /api/search NOT created — extended /api/v1/search instead.
+  ⚠ NEEDS `pnpm search:reindex` ON DEPLOY for the new filterable/sortable attributes.
+
 ## Next step
 Deploy is NOT done. Before any deploy: fill WEB_PORT + EXISTING_PROXY=nginx in
 VARIABLES.md from the audit, then follow docs/GO-LIVE-MANUAL.md.
