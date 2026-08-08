@@ -16,9 +16,25 @@ export interface ProviderCost {
   model: string;
 }
 
+/** Progress tick from a long-running transcription. `ratio` is 0..1. */
+export interface AsrProgress {
+  phase: string;
+  ratio: number;
+  jobId?: string;
+  message?: string;
+}
+
 export interface AsrProvider {
   readonly name: "sarvam" | "whisper" | "youtube-captions";
-  transcribe(audio: R2Ref, lang: "ml"): Promise<{ result: AsrResult; cost: ProviderCost }>;
+  /**
+   * `onProgress` is optional and additive — providers that do not report progress
+   * simply declare two parameters and still satisfy this interface.
+   */
+  transcribe(
+    audio: R2Ref,
+    lang: "ml",
+    onProgress?: (p: AsrProgress) => void,
+  ): Promise<{ result: AsrResult; cost: ProviderCost }>;
 }
 
 /** A named LLM task with a rendered prompt (§8.1). */

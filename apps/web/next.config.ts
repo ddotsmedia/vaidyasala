@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
   output: "standalone",
@@ -24,4 +25,18 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// Source-map upload only happens when a SENTRY_AUTH_TOKEN exists, so local and CI
+// builds stay offline and fast. Everything else here is build-time wiring that is
+// inert without a DSN.
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  silent: !process.env.CI,
+  sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN },
+  // Route browser SDK traffic through our origin so ad-blockers do not eat the
+  // error reports we most want (mobile Safari + uBlock is a common combination).
+  tunnelRoute: "/monitoring",
+  webpack: { treeshake: { removeDebugLogging: true } },
+  telemetry: false,
+});

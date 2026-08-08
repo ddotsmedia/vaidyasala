@@ -36,6 +36,12 @@ export const FUNNEL_EVENTS = {
   chapterSeek: "chapter_seek",
   subscribeClick: "subscribe_click",
   share: "share",
+  // Added for the §7.6 Mixpanel funnel. Additive only — AnalyticsEvent.name is a
+  // plain String column, so no migration is needed for new names.
+  pause: "pause",
+  seek: "seek",
+  search: "search",
+  searchResultClick: "search_result_click",
 } as const;
 export type FunnelEvent = (typeof FUNNEL_EVENTS)[keyof typeof FUNNEL_EVENTS];
 

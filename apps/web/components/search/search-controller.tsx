@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import type { Route } from "next";
 import type { SearchGroup, ScriptHint } from "@vaidyasala/ui";
 import { SearchOmniboxLazy } from "../shell/search-omnibox-lazy";
+import { trackSearch, trackSearchResultClick } from "@/lib/analytics";
 
 interface SpeechRecognitionLike {
   lang: string;
@@ -78,12 +79,34 @@ export function SearchController({
     };
   }, [query]);
 
+  // Funnel step 1 (search). The fetch above is debounced at 120ms, which is right
+  // for the UI but would log an event per keystroke. Report only queries the user
+  // has stopped typing for a beat, so "searches" means intent, not keystrokes.
+  const groupsRef = React.useRef(groups);
+  groupsRef.current = groups;
+  React.useEffect(() => {
+    const q = query.trim();
+    if (!q || loading) return;
+    const t = setTimeout(() => {
+      const count = groupsRef.current.reduce((n, g) => n + g.items.length, 0);
+      trackSearch(q, count);
+    }, 800);
+    return () => clearTimeout(t);
+  }, [query, loading]);
+
   const onSelect = React.useCallback(
     (href: string) => {
+      // Funnel step 2 (click): rank across the flattened result list, so position
+      // reflects what the user actually scanned past.
+      const flat = groups.flatMap((g) => g.items);
+      const index = flat.findIndex((i) => i.href === href);
+      const videoId = /^\/watch\/([^/?#]+)/.exec(href)?.[1];
+      if (videoId) trackSearchResultClick(videoId, index >= 0 ? index + 1 : 0, query);
+
       onOpenChange(false);
       router.push(href as Route);
     },
-    [router, onOpenChange],
+    [router, onOpenChange, groups, query],
   );
 
   return (

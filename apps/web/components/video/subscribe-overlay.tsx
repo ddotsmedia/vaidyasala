@@ -1,7 +1,7 @@
 "use client";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { SubscribeCTA } from "@vaidyasala/ui";
-import { FUNNEL_EVENTS, emitEvent } from "@/lib/analytics/events";
+import { trackSubscribeClick } from "@/lib/analytics";
 import { usePlayer } from "./player-context";
 
 /**
@@ -33,7 +33,7 @@ export function SubscribeOverlay({
             variant="banner"
             channelUrl={channelUrl}
             subscriberCount={subscriberCount}
-            onSubscribeClick={() => emitEvent(FUNNEL_EVENTS.subscribeClick, videoId)}
+            onSubscribeClick={() => trackSubscribeClick(videoId, "overlay")}
           />
         </motion.div>
       ) : null}

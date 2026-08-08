@@ -1,5 +1,6 @@
 "use client";
 import { FUNNEL_EVENTS, type FunnelEvent } from "@vaidyasala/core/validation";
+import { trackFunnel } from "./mixpanel";
 
 export { FUNNEL_EVENTS, type FunnelEvent };
 
@@ -12,6 +13,10 @@ export function emitEvent(
   videoId?: string,
   props?: Record<string, unknown>,
 ): void {
+  // Mirror into Mixpanel (§7.6). No-ops without a token / under DNT, and never
+  // throws, so the first-party write below is unaffected either way.
+  trackFunnel(name, videoId, props);
+
   const body = JSON.stringify({ name, videoId, props });
   try {
     if (typeof navigator !== "undefined" && navigator.sendBeacon) {

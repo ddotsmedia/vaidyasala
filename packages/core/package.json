@@ -11,7 +11,8 @@
     "./validation": "./src/validation/index.ts",
     "./queue": "./src/queue/index.ts",
     "./seo": "./src/seo/index.ts",
-    "./search/client": "./src/search/client.ts"
+    "./search/client": "./src/search/client.ts",
+    "./sarvam": "./src/sarvam/client.ts"
   },
   "scripts": {
     "lint": "eslint .",

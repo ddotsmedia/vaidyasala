@@ -133,7 +133,7 @@ describe("ClaudeLlmProvider", () => {
     expect(res.cost.usd).toBeCloseTo(0.0035, 6);
   });
 
-  it("selects the workhorse model by default", async () => {
+  it("defaults an untiered task to Haiku", async () => {
     const create = vi.fn(async () => ({
       content: [{ type: "text", text: "ok" }],
       usage: { input_tokens: 0, output_tokens: 0 },
@@ -141,6 +141,17 @@ describe("ClaudeLlmProvider", () => {
     const client = { messages: { create } } as unknown as AnthropicLike;
     const provider = new ClaudeLlmProvider({ client });
     await provider.complete({ kind: "enrich", system: "s", user: "u" });
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ model: "claude-haiku-4-5" }));
+  });
+
+  it("still selects the workhorse model when a task asks for it", async () => {
+    const create = vi.fn(async () => ({
+      content: [{ type: "text", text: "ok" }],
+      usage: { input_tokens: 0, output_tokens: 0 },
+    }));
+    const client = { messages: { create } } as unknown as AnthropicLike;
+    const provider = new ClaudeLlmProvider({ client });
+    await provider.complete({ kind: "enrich", tier: "workhorse", system: "s", user: "u" });
     expect(create).toHaveBeenCalledWith(expect.objectContaining({ model: "claude-sonnet-5" }));
   });
 });

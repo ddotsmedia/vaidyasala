@@ -17,6 +17,33 @@ groups:
         annotations:
           summary: "5xx error rate elevated"
 
+      # The §10 target: alert when more than 5% of requests fail. Expressed as a
+      # ratio rather than an absolute rate so it holds at both 10 req/s and 1000.
+      # `> 0` on the denominator keeps a quiet night from dividing by zero and
+      # firing a phantom 100%.
+      - alert: ErrorRateAbove5Percent
+        expr: |
+          sum(rate(vaidyasala_http_errors_total[5m]))
+            / sum(rate(vaidyasala_http_requests_total[5m])) > 0.05
+          and sum(rate(vaidyasala_http_requests_total[5m])) > 0
+        for: 5m
+        labels: { severity: critical }
+        annotations:
+          summary: "Over 5% of requests failing for 5m"
+          runbook: "Check Sentry issues for the same window; compare to a deploy."
+
+      # Same threshold on the worker: a pipeline failing >5% of jobs is burning
+      # AI spend on retries.
+      - alert: PipelineFailureRateAbove5Percent
+        expr: |
+          sum(rate(vaidyasala_jobs_failed_total[15m]))
+            / sum(rate(vaidyasala_jobs_total[15m])) > 0.05
+          and sum(rate(vaidyasala_jobs_total[15m])) > 0
+        for: 10m
+        labels: { severity: critical }
+        annotations:
+          summary: "Over 5% of pipeline jobs failing for 10m"
+
       - alert: DiskSpaceLow
         expr: node_filesystem_avail_bytes / node_filesystem_size_bytes < 0.1
         for: 15m

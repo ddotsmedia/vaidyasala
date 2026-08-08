@@ -29,6 +29,15 @@ const envSchema = z.object({
   // retrieval) and answers are extractive from retrieved segments.
   ANTHROPIC_API_KEY: z.string().optional(),
   EMBED_API_KEY: z.string().optional(),
+
+  // Monitoring + analytics (§7.6/§10). All optional: absent ⇒ that sink is inert.
+  // NOTE: the NEXT_PUBLIC_* values are also read as literal `process.env.X` in
+  // lib/analytics and lib/monitoring — Next only inlines literal references into
+  // the client bundle, so those call sites cannot go through this object.
+  NEXT_PUBLIC_SENTRY_DSN: z.string().url().optional(),
+  NEXT_PUBLIC_SENTRY_ENV: z.string().optional(),
+  NEXT_PUBLIC_MIXPANEL_TOKEN: z.string().optional(),
+  SENTRY_TRACES_SAMPLE_RATE: z.coerce.number().min(0).max(1).optional(),
 });
 
 export const env = envSchema.parse({
@@ -46,4 +55,8 @@ export const env = envSchema.parse({
   MEILI_MASTER_KEY: process.env.MEILI_MASTER_KEY,
   ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
   EMBED_API_KEY: process.env.EMBED_API_KEY,
+  NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
+  NEXT_PUBLIC_SENTRY_ENV: process.env.NEXT_PUBLIC_SENTRY_ENV,
+  NEXT_PUBLIC_MIXPANEL_TOKEN: process.env.NEXT_PUBLIC_MIXPANEL_TOKEN,
+  SENTRY_TRACES_SAMPLE_RATE: process.env.SENTRY_TRACES_SAMPLE_RATE,
 });

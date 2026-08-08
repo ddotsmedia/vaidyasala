@@ -40,6 +40,12 @@ const envSchema = z.object({
   // runs in fixture mode (logs the payload it would submit).
   SITE_URL: z.string().url().default("http://localhost:3000"),
   INDEXNOW_KEY: z.string().optional(),
+
+  // Sentry (§10). Absent DSN ⇒ monitoring is a no-op; the worker runs unchanged.
+  SENTRY_DSN: z.string().url().optional(),
+  SENTRY_ENV: z.string().optional(),
+  SENTRY_RELEASE: z.string().optional(),
+  SENTRY_TRACES_SAMPLE_RATE: z.coerce.number().min(0).max(1).optional(),
 });
 
 export const env = envSchema.parse(process.env);

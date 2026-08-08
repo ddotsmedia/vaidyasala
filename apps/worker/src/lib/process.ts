@@ -1,5 +1,6 @@
 import type { PrismaClient } from "@vaidyasala/db";
 import { mirrorJob } from "./job-mirror";
+import { capturePipelineError, withJobSpan } from "../monitoring/sentry";
 
 /** Minimal shape of a BullMQ Job needed for mirroring. */
 export interface JobLike<T> {
@@ -27,9 +28,14 @@ export async function runMirrored<T, R extends MirroredResult | void>(
 ): Promise<R> {
   const id = job.id ?? `${job.name}:${JSON.stringify(job.data)}`;
   const attempts = job.attemptsMade + 1;
+  const ids = extractIds(job.data);
   await mirrorJob(prisma, { id, kind: job.name, status: "active", attempts });
   try {
-    const result = await fn();
+    const result = await withJobSpan(
+      `pipeline.${job.name}`,
+      { "job.id": id, "job.attempt": attempts, "video.id": ids.videoId },
+      fn,
+    );
     await mirrorJob(prisma, {
       id,
       kind: job.name,
@@ -47,6 +53,19 @@ export async function runMirrored<T, R extends MirroredResult | void>(
       attempts,
       error: err instanceof Error ? err.message : String(err),
     });
+    // Every stage failure funnels through here, so this is the one place that
+    // needs to know how to describe a pipeline error to Sentry.
+    capturePipelineError(err, { stage: job.name, jobId: id, attempt: attempts, ...ids });
     throw err;
   }
+}
+
+/** Best-effort ids from an opaque job payload — used only for error context. */
+function extractIds(data: unknown): { videoId?: string; youtubeId?: string } {
+  if (typeof data !== "object" || data === null) return {};
+  const d = data as { videoId?: unknown; youtubeId?: unknown };
+  return {
+    videoId: typeof d.videoId === "string" ? d.videoId : undefined,
+    youtubeId: typeof d.youtubeId === "string" ? d.youtubeId : undefined,
+  };
 }

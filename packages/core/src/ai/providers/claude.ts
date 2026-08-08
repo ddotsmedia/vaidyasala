@@ -41,7 +41,10 @@ export class ClaudeLlmProvider implements LlmProvider {
   }
 
   async complete(task: PromptTask): Promise<LlmResult> {
-    const model = task.tier === "cheap" ? this.cheap : this.workhorse;
+    // Haiku is the default: only a task that explicitly asks for the workhorse
+    // tier pays Sonnet prices. Every prompt in ai/prompts declares its tier, so
+    // this only changes what an unlabelled ad-hoc task costs.
+    const model = task.tier === "workhorse" ? this.workhorse : this.cheap;
     await this.limiter.acquire();
 
     const message = await this.breaker.run(() =>

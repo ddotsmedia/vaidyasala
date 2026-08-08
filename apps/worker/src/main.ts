@@ -31,6 +31,7 @@ import {
 } from "./jobs/nightly";
 import { seoPingInputSchema } from "@vaidyasala/core/queue";
 import { enqueueIngest } from "./enqueue";
+import { initSentry, sentryEnabled, flushSentry, capturePipelineError } from "./monitoring/sentry";
 
 const log = (msg: string): void => console.log(msg);
 
@@ -49,11 +50,13 @@ function attachDlq(worker: Worker): void {
 }
 
 async function main(): Promise<void> {
+  // Before anything else, so a crash during wiring is still reported.
+  initSentry();
   log(
     `[worker] boot · core@${CORE_VERSION} · concurrency=${env.WORKER_CONCURRENCY} · ` +
       `storage=${createStorageFromEnv().enabled ? "on" : "off"} · ytApi=${
         env.YOUTUBE_API_KEY ? "on" : "off(yt-dlp)"
-      }`,
+      } · sentry=${sentryEnabled() ? "on" : "off"}`,
   );
   await Promise.all(Object.values(queues).map((q) => q.waitUntilReady()));
 
@@ -138,6 +141,8 @@ async function main(): Promise<void> {
     await Promise.all(workers.map((w) => w.close()));
     await closeFlowProducer();
     await Promise.all(Object.values(queues).map((q) => q.close()));
+    // Errors captured moments before SIGTERM are still in the transport buffer.
+    await flushSentry();
     process.exit(0);
   };
   process.on("SIGINT", () => void shutdown("SIGINT"));
@@ -146,5 +151,6 @@ async function main(): Promise<void> {
 
 main().catch((err: unknown) => {
   console.error("[worker] fatal", err);
-  process.exit(1);
+  capturePipelineError(err, { stage: "boot" });
+  void flushSentry().finally(() => process.exit(1));
 });
