@@ -45,7 +45,11 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
             {video.primaryTopic ? <span>· {video.primaryTopic.nameMl}</span> : null}
           </div>
         </div>
-        <PublishControls videoId={video.id} status={video.status} />
+        <PublishControls
+          videoId={video.id}
+          status={video.status}
+          featured={video.featuredAt !== null}
+        />
       </header>
 
       <Section title="Transcript diff (raw → corrected)">

@@ -2,10 +2,23 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@vaidyasala/ui";
-import { publishVideo, hideVideo, type ActionResult } from "@/app/(admin)/admin/videos/[id]/actions";
+import {
+  publishVideo,
+  hideVideo,
+  setVideoFeatured,
+  type ActionResult,
+} from "@/app/(admin)/admin/videos/[id]/actions";
 
-/** Publish / hide controls wired to the server actions (§6.5). */
-export function PublishControls({ videoId, status }: { videoId: string; status: string }) {
+/** Publish / hide / feature controls wired to the server actions (§6.5). */
+export function PublishControls({
+  videoId,
+  status,
+  featured = false,
+}: {
+  videoId: string;
+  status: string;
+  featured?: boolean;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
@@ -34,6 +47,17 @@ export function PublishControls({ videoId, status }: { videoId: string; status: 
           {pending ? "Working…" : "Hide"}
         </Button>
       )}
+      {/* Only a published video can be the hero, so the control rides with it. */}
+      {status === "PUBLISHED" ? (
+        <Button
+          variant="outline"
+          disabled={pending}
+          aria-pressed={featured}
+          onClick={() => run(() => setVideoFeatured(videoId, !featured))}
+        >
+          {featured ? "Unfeature" : "Feature on home"}
+        </Button>
+      ) : null}
       {msg ? <span className="text-text-dim text-sm">{msg}</span> : null}
     </div>
   );

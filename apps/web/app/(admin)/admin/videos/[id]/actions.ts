@@ -63,6 +63,38 @@ export async function publishVideo(videoId: string): Promise<ActionResult> {
   return { ok: true };
 }
 
+/**
+ * Feature a video on the home hero, or clear the feature (§1.1).
+ *
+ * Newest featuredAt wins, so featuring is one write — the previously featured
+ * video does not need clearing and stays a candidate if this one is unpublished.
+ */
+export async function setVideoFeatured(
+  videoId: string,
+  featured: boolean,
+): Promise<ActionResult> {
+  const authz = await authorize("EDITOR");
+  if (!authz.ok) return { ok: false, error: authz.reason };
+
+  await prisma.video.update({
+    where: { id: videoId },
+    data: { featuredAt: featured ? new Date() : null },
+  });
+  await prisma.auditLog.create({
+    data: {
+      actorId: authz.ctx!.userId,
+      action: featured ? "video.feature" : "video.unfeature",
+      target: videoId,
+      meta: {},
+    },
+  });
+  updateTag(`video:${videoId}`);
+  // The hero lives on the home page, so that is what has to be rebuilt.
+  revalidatePath("/");
+  revalidatePath("/admin/videos");
+  return { ok: true };
+}
+
 /** Hide a video (reversible). */
 export async function hideVideo(videoId: string): Promise<ActionResult> {
   const authz = await authorize("EDITOR");

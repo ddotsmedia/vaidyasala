@@ -26,12 +26,17 @@ model Video {
   relatedFrom    RelatedEdge[] @relation("from")
   relatedTo      RelatedEdge[] @relation("to")
   qualityScore   Float?
+  /// Manual hero pick (§1.1). Set by an editor; newest wins so re-featuring is a
+  /// single write with no need to clear the previous one. Null ⇒ the home page
+  /// falls back to automatic selection by qualityScore.
+  featuredAt     DateTime?
   embedding      Unsupported("vector(1024)")?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
   @@index([status, publishedAt(sort: Desc)])
   @@index([primaryTopicId])
+  @@index([featuredAt(sort: Desc)])
 }
 
 model Chapter {

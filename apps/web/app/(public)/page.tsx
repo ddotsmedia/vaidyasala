@@ -1,44 +1,44 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { VideoCard, TopicChip } from "@vaidyasala/ui";
+import type { Route } from "next";
 import {
-  getFeatured,
+  getFeaturedHero,
   getTrending,
   getLatest,
   getPopularTopics,
+  getTopicRails,
   getLatestArticles,
 } from "@/lib/feeds";
-import { VideoGrid, LinkedRail } from "@/components/home/video-grid";
 import { NewsletterForm } from "@/components/home/newsletter-form";
-import { ContinueIsland, RecommendedIsland, RailSkeleton } from "@/components/home/islands";
+import { HeroFeatured } from "@/components/home/hero-featured";
+import { RecommendedIsland, RailSkeleton } from "@/components/home/islands";
+import { ContinueWatchingClient } from "@/components/home/continue-client";
+import { VideoCarousel } from "@/components/video-carousel";
+import { CategoryGrid } from "@/components/category-grid";
 import { SubscribeCTA } from "@vaidyasala/ui";
 import { JsonLd, websiteLd, organizationLd } from "@/lib/seo";
 
-export const revalidate = 300;
+export const revalidate = 1800;
 
 const CHANNEL_URL = "https://www.youtube.com/@vaidyasala?sub_confirmation=1";
 
 /** Home (§1.1 order): static shell + streamed personalization islands (§11). */
 export default async function HomePage() {
-  const [featured, trending, latest, topics, articles] = await Promise.all([
-    getFeatured(),
-    getTrending(8),
-    getLatest(8),
+  const [featured, trending, latest, topics, topicRails, articles] = await Promise.all([
+    getFeaturedHero(),
+    getTrending(12),
+    getLatest(12),
     getPopularTopics(8),
+    getTopicRails(4),
     getLatestArticles(4),
   ]);
 
   return (
     <div className="flex flex-col gap-12 py-8">
       <JsonLd data={[websiteLd(), organizationLd()]} />
-      {/* Featured */}
+      {/* Featured hero */}
       {featured ? (
-        <section className="flex flex-col gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">Featured</h1>
-          <Link href={`/watch/${featured.slug}`} className="block max-w-3xl">
-            <VideoCard video={featured} size="lg" />
-          </Link>
-        </section>
+        <HeroFeatured video={featured} />
       ) : (
         <section className="py-16">
           <h1 className="text-2xl font-semibold">No videos yet</h1>
@@ -47,45 +47,42 @@ export default async function HomePage() {
       )}
 
       {/* Trending */}
-      <LinkedRail title="Trending this week" videos={trending} />
+      <VideoCarousel title="Trending this week" videos={trending} viewAllHref="/trending" />
 
       {/* Latest */}
-      <section className="flex flex-col gap-3">
-        <div className="flex items-baseline justify-between">
-          <h2 className="text-lg font-semibold">Latest</h2>
-          <Link href="/latest" className="text-brand text-sm hover:underline">
-            View all →
-          </Link>
-        </div>
-        <VideoGrid videos={latest} />
-      </section>
+      <VideoCarousel title="Latest" videos={latest} viewAllHref="/latest" />
 
-      {/* Continue [island] */}
-      <Suspense fallback={<RailSkeleton />}>
-        <ContinueIsland />
-      </Suspense>
+      {/* Continue watching — fetched after hydration so the page stays static
+          and ISR/CDN-cacheable. See continue-client.tsx. */}
+      <ContinueWatchingClient />
 
-      {/* Recommended [island] */}
+      {/* Recommended [island] — no viewer cookie, so it renders on the server. */}
       <Suspense fallback={<RailSkeleton />}>
         <RecommendedIsland />
       </Suspense>
 
-      {/* Popular topics */}
+      {/* Health topics */}
       <section className="flex flex-col gap-3">
         <div className="flex items-baseline justify-between">
-          <h2 className="text-lg font-semibold">Popular topics</h2>
+          <h2 className="text-lg font-semibold">Browse by topic</h2>
           <Link href="/topics" className="text-brand text-sm hover:underline">
             All topics →
           </Link>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {topics.map((t) => (
-            <Link key={t.slug} href={`/topics/${t.slug}`}>
-              <TopicChip topic={{ slug: t.slug, nameMl: t.nameMl, nameEn: t.nameEn }} />
-            </Link>
-          ))}
-        </div>
+        <CategoryGrid topics={topics} />
       </section>
+
+      {/* One rail per major topic. Skipped entirely when the catalogue is too
+          small for any topic to clear the minimum. */}
+      {topicRails.map((rail) => (
+        <VideoCarousel
+          key={rail.slug}
+          title={rail.nameEn}
+          subtitleMl={rail.nameMl}
+          videos={rail.videos}
+          viewAllHref={`/topics/${rail.slug}` as Route}
+        />
+      ))}
 
       {/* Latest articles */}
       {articles.length > 0 ? (

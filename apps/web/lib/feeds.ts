@@ -39,6 +39,15 @@ export function toCard(v: CardRow): VideoCardData {
 const PUBLISHED = { status: "PUBLISHED" as const };
 
 export async function getFeatured(): Promise<VideoCardData | null> {
+  // An editor's manual pick wins (newest featuredAt). Nothing featured ⇒ fall
+  // back to the automatic choice, so the hero is never empty.
+  const manual = await prisma.video.findFirst({
+    where: { ...PUBLISHED, featuredAt: { not: null } },
+    orderBy: { featuredAt: "desc" },
+    select: cardSelect,
+  });
+  if (manual) return toCard(manual);
+
   const v = await prisma.video.findFirst({
     where: PUBLISHED,
     orderBy: [{ qualityScore: "desc" }, { publishedAt: "desc" }],
@@ -114,6 +123,87 @@ export async function getPopularTopics(limit = 8): Promise<TopicCard[]> {
       videoCount: t._count.videos,
     }))
     .sort((a, b) => b.videoCount - a.videoCount);
+}
+
+export interface HeroVideo extends VideoCardData {
+  /** AI summary if enriched, else the YouTube description. May be null. */
+  blurb: string | null;
+}
+
+/**
+ * Featured video for the hero, with the extra copy the hero renders over the
+ * thumbnail. Separate from getFeatured() because every other caller wants the
+ * lean card shape and should not pay for the description/enrichment join.
+ */
+export async function getFeaturedHero(): Promise<HeroVideo | null> {
+  const heroSelect = {
+    ...cardSelect,
+    description: true,
+    enrichment: { select: { summaryMl: true } },
+  } as const;
+
+  const manual = await prisma.video.findFirst({
+    where: { ...PUBLISHED, featuredAt: { not: null } },
+    orderBy: { featuredAt: "desc" },
+    select: heroSelect,
+  });
+  const row =
+    manual ??
+    (await prisma.video.findFirst({
+      where: PUBLISHED,
+      orderBy: [{ qualityScore: "desc" }, { publishedAt: "desc" }],
+      select: heroSelect,
+    }));
+  if (!row) return null;
+
+  return {
+    ...toCard(row),
+    blurb: row.enrichment?.summaryMl ?? row.description ?? null,
+  };
+}
+
+export interface TopicRail {
+  slug: string;
+  nameMl: string;
+  nameEn: string;
+  videos: VideoCardData[];
+}
+
+/**
+ * One rail per topic for the "by category" section (§1.1). Only topics with
+ * enough videos to look like a rail are returned — a two-item carousel reads as
+ * a bug, not a category.
+ */
+export async function getTopicRails(
+  railCount = 4,
+  perRail = 8,
+  minVideos = 3,
+): Promise<TopicRail[]> {
+  const topics = await prisma.topic.findMany({
+    include: { _count: { select: { videos: true } } },
+  });
+  const candidates = topics
+    .filter((t) => t._count.videos >= minVideos)
+    .sort((a, b) => b._count.videos - a._count.videos)
+    .slice(0, railCount);
+  if (candidates.length === 0) return [];
+
+  return Promise.all(
+    candidates.map(async (t) => {
+      const rows = await prisma.topicVideo.findMany({
+        where: { topicId: t.id, video: PUBLISHED },
+        orderBy: { score: "desc" },
+        take: perRail,
+        select: { video: { select: cardSelect } },
+      });
+      return {
+        slug: t.slug,
+        nameMl: t.nameMl,
+        nameEn: t.nameEn,
+        videos: rows.map((r) => toCard(r.video)),
+      };
+    }),
+  );
 }
 
 export interface ArticleCard {
