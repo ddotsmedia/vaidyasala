@@ -57,7 +57,11 @@ COPY . .
 # at the top level will fail the export, so pass it when building on the VPS.
 # It is a build ARG, not an ENV: it must not be baked into the final image, and
 # the runner stage below never sees it.
-ARG DATABASE_URL=""
+# Default is a placeholder that is never reachable. Prisma validates that the
+# env var EXISTS at generate/build time, so it has to be set to something; the
+# build guard in @vaidyasala/db then turns the failed connection into empty data
+# instead of a failed build. Pass a real URL to prerender real content.
+ARG DATABASE_URL="postgresql://build:build@127.0.0.1:1/placeholder?schema=public"
 ENV DATABASE_URL=$DATABASE_URL
 
 RUN pnpm --filter @vaidyasala/db generate \

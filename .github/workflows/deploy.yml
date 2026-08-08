@@ -131,6 +131,19 @@ jobs:
               exit 1
             fi
 
+            # If the image was built without a database, the listing pages were
+            # prerendered empty. Force them to regenerate now that the real DB
+            # is reachable, rather than serving a blank site until ISR expires.
+            REVALIDATE_TOKEN="$(grep -E '^(REVALIDATE_TOKEN|ADMIN_INGEST_TOKEN)=' .env | head -1 | cut -d= -f2-)"
+            if [ -n "$REVALIDATE_TOKEN" ]; then
+              curl -fsS -X POST "http://127.0.0.1:${WEB_PORT}/api/internal/revalidate" \
+                -H "authorization: Bearer ${REVALIDATE_TOKEN}" >/dev/null \
+                && echo "✓ listing pages revalidated" \
+                || echo "! revalidation failed — check the listing pages by hand"
+            else
+              echo "! no REVALIDATE_TOKEN/ADMIN_INGEST_TOKEN in .env — skipping revalidation"
+            fi
+
             # Prove the other 10 sites are byte-identical in name+status.
             docker ps --format '{{.Names}}\t{{.Status}}' \
               | grep -v '^vaidyasala-' | sort > /tmp/others.after
