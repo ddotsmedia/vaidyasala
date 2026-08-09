@@ -105,9 +105,19 @@ jobs:
             $COMPOSE pull web worker
 
             # Migrations before the new code serves traffic (additive only, LAW 5).
-            $COMPOSE run --rm --no-deps worker \
-              node node_modules/prisma/build/index.js migrate deploy \
-              --schema packages/db/prisma/schema
+            # The Prisma CLI is a devDependency of @vaidyasala/db, so under pnpm
+            # it resolves at packages/db/node_modules/prisma — NOT at the repo
+            # root, which is where this used to look. Both paths are tried so a
+            # change to pnpm's node-linker does not silently break deploys.
+            $COMPOSE run --rm --no-deps --entrypoint sh worker -c '
+              for p in packages/db/node_modules/prisma/build/index.js \
+                       node_modules/prisma/build/index.js; do
+                if [ -f "$p" ]; then
+                  exec node "$p" migrate deploy --schema packages/db/prisma/schema
+                fi
+              done
+              echo "✗ prisma CLI not found in the worker image"; exit 1
+            '
 
             # Rolling restart of OUR services only — named explicitly, never a
             # bare `docker restart` and never `$COMPOSE restart` without args.
