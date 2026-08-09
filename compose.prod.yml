@@ -1,0 +1,117 @@
+version: "3.8"
+services:
+  postgres:
+    image: vaidhyasala-postgres
+    container_name: vaidhyasala-postgres
+    build:
+      context: /opt/vaidhyasala/repo
+      dockerfile: infra/docker/Dockerfile.postgres
+    environment:
+      POSTGRES_USER: vaidhyasala
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_DB: vaidhyasala
+    volumes:
+      - vaidhyasala_pgdata:/var/lib/postgresql/data
+    networks:
+      - vaidhyasala-internal
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vaidhyasala"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: vaidhyasala-redis
+    volumes:
+      - vaidhyasala_redis:/data
+    networks:
+      - vaidhyasala-internal
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.11
+    container_name: vaidhyasala-meilisearch
+    environment:
+      MEILI_ENV: production
+      MEILI_MASTER_KEY: "${MEILI_MASTER_KEY}"
+    volumes:
+      - vaidhyasala_meili:/meili_data
+    networks:
+      - vaidhyasala-internal
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: /opt/vaidhyasala/repo
+      dockerfile: infra/docker/Dockerfile.web
+    container_name: vaidhyasala-web
+    ports:
+      - "127.0.0.1:8888:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      NEXT_PUBLIC_SITE_URL: "https://vaidhyasala.com"
+      DATABASE_URL: "postgresql://vaidhyasala:${POSTGRES_PASSWORD}@postgres:5432/vaidhyasala"
+      REDIS_URL: "redis://redis:6379"
+      MEILI_HOST: "http://meilisearch:7700"
+      MEILI_MASTER_KEY: "${MEILI_MASTER_KEY}"
+      BETTER_AUTH_SECRET: "${BETTER_AUTH_SECRET}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+    networks:
+      - vaidhyasala-internal
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  worker:
+    build:
+      context: /opt/vaidhyasala/repo
+      dockerfile: infra/docker/Dockerfile.worker
+    container_name: vaidhyasala-worker
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: "postgresql://vaidhyasala:${POSTGRES_PASSWORD}@postgres:5432/vaidhyasala"
+      REDIS_URL: "redis://redis:6379"
+      MEILI_HOST: "http://meilisearch:7700"
+      MEILI_MASTER_KEY: "${MEILI_MASTER_KEY}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+    networks:
+      - vaidhyasala-internal
+    restart: unless-stopped
+
+volumes:
+  vaidhyasala_pgdata:
+  vaidhyasala_redis:
+  vaidhyasala_meili:
+
+networks:
+  vaidhyasala-internal:
+    driver: bridge

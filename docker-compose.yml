@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: vaidhyasala-postgres
+    environment:
+      POSTGRES_DB: vaidhyasala
+      POSTGRES_USER: vaidhyasala
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5439:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vaidhyasala"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: vaidhyasala-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.8
+    container_name: vaidhyasala-meilisearch
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
+    ports:
+      - "7700:7700"
+    volumes:
+      - meilisearch_data:/meili_data
+
+  web:
+    image: vaidhyasala/web:latest
+    container_name: vaidhyasala-web
+    restart: always
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://vaidhyasala:${POSTGRES_PASSWORD}@postgres:5432/vaidhyasala
+      REDIS_URL: redis://redis:6379
+      MEILI_HOST: http://meilisearch:7700
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
+      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY}
+      NEXT_PUBLIC_SITE_URL: https://vaidhyasala.com
+    ports:
+      - "8888:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  worker:
+    image: vaidhyasala/worker:latest
+    container_name: vaidhyasala-worker
+    restart: always
+    command: npm run worker
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://vaidhyasala:${POSTGRES_PASSWORD}@postgres:5432/vaidhyasala
+      REDIS_URL: redis://redis:6379
+      MEILI_HOST: http://meilisearch:7700
+      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY}
+    depends_on:
+      - postgres
+      - redis
+
+volumes:
+  postgres_data:
+  meilisearch_data:
