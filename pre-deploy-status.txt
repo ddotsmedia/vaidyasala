@@ -1,0 +1,49 @@
+NAMES                                     STATUS
+lsn-backend                               Up 2 hours (healthy)
+lsn-frontend                              Up 2 hours (healthy)
+lsn-postgres                              Up 3 hours (healthy)
+khp-khp-web-1                             Up 37 hours
+ayurconnect-meilisearch                   Up 4 days
+khp-khp-portal-1                          Up 4 days
+khp-khp-admin-1                           Up 4 days
+khp-khp-redis-1                           Up 4 days (healthy)
+khp-khp-postgres-1                        Up 4 days (healthy)
+medicore2-core-api-1                      Up 4 days (healthy)
+medicore2-web-1                           Up 4 days (healthy)
+medicore2-ai-service-1                    Up 4 days (healthy)
+medicore2-hapi-fhir-1                     Up 4 days
+82ad04f4e8d0_medicore2-zookeeper-1        Up 4 days (healthy)
+medicore2-kafka-1                         Up 4 days (healthy)
+medicore2-postgres-1                      Up 4 days (healthy)
+medicore2-minio-1                         Up 4 days (healthy)
+medicore2-redis-1                         Up 4 days (healthy)
+ayurconnect-minio                         Up 4 days (healthy)
+ayurconnect-postgres                      Up 4 days (healthy)
+ef633e023dea_cbw_mysql                    Up 4 days
+ddotsjobs-search                          Up 4 days
+655560a00f2b_abudhabi-malayalees-app-1    Up 4 days (healthy)
+community-app-postgres-1                  Up 4 days (healthy)
+community-app-backend-1                   Up 4 days
+community-app-frontend-1                  Up 4 days
+ddotsmedia-payload-v21                    Up 4 days
+ddotsmedia-payload-v20                    Up 4 days
+ddotsmedia-payload-v19                    Up 4 days
+ddotsmedia-payload-v18                    Up 4 days
+ddotsmedia-payload-v17                    Up 4 days
+ddotsmedia-payload-db                     Up 4 days
+1c4fb31c3d78_ddotshop-workers-1           Up 4 days
+97d2029f0363_ddotshop-app-1               Up 4 days (unhealthy)
+ddotshop-postgres-1                       Up 4 days (healthy)
+ddotshop-redis-1                          Up 4 days (healthy)
+aitools-web-1                             Up 4 days
+aitools-api-1                             Up 13 seconds (health: starting)
+aitools-ai-1                              Up 4 days
+aitools-meilisearch-1                     Up 4 days
+aitools-postgres-1                        Up 4 days (healthy)
+aitools-redis-1                           Up 4 days (healthy)
+jobportalwebsite-api-1                    Up 4 days (healthy)
+jobportalwebsite-web-1                    Up 4 days
+ddhr-web                                  Up 4 days (healthy)
+jobportalwebsite-redis-1                  Up 4 days (healthy)
+e92fa4653d7b_jobportalwebsite-mariadb-1   Up 4 days (healthy)
+jobportalwebsite-prerender-1              Up 4 days (healthy)
