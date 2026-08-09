@@ -27,6 +27,8 @@ export interface SearchOmniboxProps {
   scriptHint?: ScriptHint;
   onSelect?: (href: string) => void;
   onVoice?: () => void;
+  /** Renders a "Clear" control beside the results when provided. */
+  onClearRecent?: () => void;
 }
 
 /**
@@ -43,6 +45,7 @@ export function SearchOmnibox({
   scriptHint,
   onSelect,
   onVoice,
+  onClearRecent,
 }: SearchOmniboxProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -97,6 +100,17 @@ export function SearchOmnibox({
               ))
             )}
           </CommandList>
+          {onClearRecent ? (
+            <div className="border-border flex justify-end border-t p-2">
+              <button
+                type="button"
+                onClick={onClearRecent}
+                className="text-text-dim hover:text-text focus-visible:outline-focus min-h-11 rounded-md px-3 text-sm focus-visible:outline-2"
+              >
+                Clear recent searches
+              </button>
+            </div>
+          ) : null}
         </Command>
       </DialogContent>
     </Dialog>

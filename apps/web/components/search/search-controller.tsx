@@ -5,6 +5,11 @@ import type { Route } from "next";
 import type { SearchGroup, ScriptHint } from "@vaidyasala/ui";
 import { SearchOmniboxLazy } from "../shell/search-omnibox-lazy";
 import { trackSearch, trackSearchResultClick } from "@/lib/analytics";
+import {
+  addRecentSearch,
+  clearRecentSearches,
+  getRecentSearches,
+} from "@/lib/search/recent-searches";
 
 interface SpeechRecognitionLike {
   lang: string;
@@ -50,6 +55,44 @@ export function SearchController({
   const [groups, setGroups] = React.useState<SearchGroup[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [scriptHint, setScriptHint] = React.useState<ScriptHint | undefined>();
+  const [recent, setRecent] = React.useState<string[]>([]);
+  const [popular, setPopular] = React.useState<string[]>([]);
+
+  // An empty box should still be useful: this device's history, then what
+  // everyone else is finding. Loaded when the palette opens, not on page load,
+  // so a visitor who never searches pays nothing for it.
+  React.useEffect(() => {
+    if (!open) return;
+    setRecent(getRecentSearches());
+    if (popular.length > 0) return;
+    let alive = true;
+    fetch("/api/v1/search/suggestions")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { popular?: string[] } | null) => {
+        if (alive && d?.popular) setPopular(d.popular);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [open, popular.length]);
+
+  /** Suggestion groups shown while the box is empty. */
+  const idleGroups = React.useMemo<SearchGroup[]>(() => {
+    const toItems = (list: string[], prefix: string) =>
+      list.map((q) => ({
+        id: `${prefix}:${q}`,
+        label: q,
+        href: `/search?q=${encodeURIComponent(q)}`,
+      }));
+    const out: SearchGroup[] = [];
+    if (recent.length) out.push({ heading: "Recent", items: toItems(recent, "recent") });
+    const fresh = popular.filter(
+      (p) => !recent.some((r) => r.toLocaleLowerCase() === p.toLocaleLowerCase()),
+    );
+    if (fresh.length) out.push({ heading: "Popular", items: toItems(fresh.slice(0, 8), "pop") });
+    return out;
+  }, [recent, popular]);
 
   React.useEffect(() => {
     const q = query.trim();
@@ -103,6 +146,9 @@ export function SearchController({
       const videoId = /^\/watch\/([^/?#]+)/.exec(href)?.[1];
       if (videoId) trackSearchResultClick(videoId, index >= 0 ? index + 1 : 0, query);
 
+      // Remember what led somewhere, not every keystroke that didn't.
+      if (query.trim()) setRecent(addRecentSearch(query));
+
       onOpenChange(false);
       router.push(href as Route);
     },
@@ -115,11 +161,19 @@ export function SearchController({
       onOpenChange={onOpenChange}
       query={query}
       onQueryChange={setQuery}
-      groups={groups}
+      groups={query.trim() ? groups : idleGroups}
       loading={loading}
       scriptHint={scriptHint}
       onSelect={onSelect}
       onVoice={() => startVoice(setQuery)}
+      onClearRecent={
+        !query.trim() && recent.length > 0
+          ? () => {
+              clearRecentSearches();
+              setRecent([]);
+            }
+          : undefined
+      }
     />
   );
 }
