@@ -1,4 +1,4 @@
-import { slugifyMl } from "@vaidyasala/core/content";
+import { slugifyAscii } from "@vaidyasala/core/content";
 import { completeJson, prompts } from "@vaidyasala/core/ai";
 import { transcriptSegmentSchema, articleDraftSchema } from "@vaidyasala/core/validation";
 import type { StageFactory } from "../pipeline/deps";
@@ -26,7 +26,7 @@ export const articleStage: StageFactory = (deps) => async ({ videoId, youtubeId 
 
   const claims = data.claims ?? [];
   const supported = claims.filter((c) => c.segmentStartSec !== null).length;
-  const slug = `${slugifyMl(data.titleMl).slice(0, 80) || "article"}-${youtubeId}`;
+  const slug = `${slugifyAscii(data.titleMl).slice(0, 80) || "article"}-${youtubeId}`;
 
   await deps.prisma.article.create({
     data: {

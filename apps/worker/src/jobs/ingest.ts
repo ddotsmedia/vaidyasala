@@ -1,5 +1,5 @@
 import type { IngestJobData } from "@vaidyasala/core/queue";
-import { slugifyMl } from "@vaidyasala/core/content";
+import { slugifyAscii } from "@vaidyasala/core/content";
 import { type PrismaClient, VideoStatus } from "@vaidyasala/db";
 import type { StoragePort } from "../storage/s3";
 import { mediaKeys } from "../storage/s3";
@@ -62,7 +62,8 @@ export function createIngestProcessor(deps: IngestDeps) {
     const meta: VideoMetadata = await deps.metadata.fetch(youtubeId);
     log(`[ingest] ${youtubeId} metadata via ${meta.source} (${meta.chapters.length} chapters)`);
 
-    const slug = `${slugifyMl(meta.title).slice(0, 80) || "video"}-${youtubeId}`;
+    // ASCII only — a non-ASCII route segment prerenders as 404 (see slugifyAscii).
+    const slug = `${slugifyAscii(meta.title).slice(0, 80) || "video"}-${youtubeId}`;
 
     const video = await deps.prisma.video.upsert({
       where: { youtubeId },

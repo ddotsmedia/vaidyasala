@@ -4,6 +4,34 @@
  * Malayalam-aware slugify: transliterate-free, keeps Malayalam block, ASCII
  * lowercased, spaces→hyphens. Full Mozhi transliteration lands in Phase 4.
  */
+/**
+ * URL-safe ASCII slug for route segments.
+ *
+ * Malayalam must NOT survive into a dynamic route segment: Next 16 does not
+ * round-trip a non-ASCII `[slug]` param through prerendering — the page is
+ * generated but baked with status 404, so the video is unreachable. Verified on
+ * Linux, not a Windows path quirk.
+ *
+ * Callers always suffix the YouTube id, so uniqueness never depends on the
+ * readable part; when a title is entirely Malayalam this correctly yields "" and
+ * the caller's fallback takes over.
+ *
+ * `slugifyMl` below is unchanged and still right for anything that is not a URL
+ * segment (display keys, admin-authored topic slugs typed in English).
+ */
+export function slugifyAscii(input: string): string {
+  return input
+    .normalize("NFKD")
+    // Drop combining marks left by NFKD so "é" → "e" rather than "e" + U+0301.
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, " ")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
 export function slugifyMl(input: string): string {
   return input
     .trim()
