@@ -210,6 +210,48 @@ all 10 sites. Out of scope for this project to run unilaterally.
 
 ---
 
+---
+
+## 6. Activating the YouTube pipeline
+
+The ingest system is built and idle. It needs exactly two values in
+`/opt/vaidyasala/.env` — nothing in the code changes:
+
+```bash
+YOUTUBE_CHANNEL_ID=UCADw8vrx5oszMLul5PHzCqA   # "vaidyasala", 503 videos, 208K subs
+YOUTUBE_API_KEY=<key>                          # NEVER committed (LAW 5)
+```
+
+Restart only our worker: `docker compose -p vaidyasala -f compose.prod.yml up -d worker`.
+`[yt-poll] BLOCKED: missing YOUTUBE_API_KEY or YOUTUBE_CHANNEL_ID` disappearing
+from the logs is the confirmation.
+
+**Restrict the key** in Google Cloud Console to YouTube Data API v3 and the
+server IP. It is read-only against a public channel, but an unrestricted key is
+someone else's free quota.
+
+### What this does and does not import
+
+`yt-poll` checks the **15 most recent uploads** per run (`limit ?? 15`, capped at
+50 by the API) and enqueues only ids not already in the database. So switching
+the key on picks up **new uploads from now on** — it does **not** walk the
+503-video back catalogue. Those 488 older videos need the throttled backfill
+(Phase 7B step 2), which is not written yet.
+
+### Cost, before you switch it on
+
+Every ingested video runs the full §8.2 chain: ASR → Malayalam correction →
+translation → chapters → enrichment → embeddings. That is real spend per video
+once `ANTHROPIC_API_KEY` / `SARVAM_API_KEY` are set, and 503 of them at once is
+not a rounding error. Bring the catalogue in deliberately — a resumable,
+rate-limited backfill watched from `/admin/queue` — rather than letting the
+first poll cycle decide.
+
+With the AI keys absent the pipeline still runs in fixture mode: videos are
+ingested with metadata and thumbnails but no transcript or AI summary.
+
+---
+
 ## Remaining manual steps — summary
 
 | # | Step | Blocked on |
