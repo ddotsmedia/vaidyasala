@@ -33,8 +33,9 @@ R2_BUCKET_MEDIA = vaidyasala-media
 R2_BUCKET_BACKUP = vaidyasala-backups
 
 ## EXTERNAL SERVICES (put keys in .env when obtained)
-YOUTUBE_CHANNEL_ID = <UC...>
-YOUTUBE_API = key in .env as YOUTUBE_API_KEY
+YOUTUBE_CHANNEL_ID = UCADw8vrx5oszMLul5PHzCqA   # "vaidyasala" — 503 videos, 208K subs
+                                                # uploads playlist: UUADw8vrx5oszMLul5PHzCqA
+YOUTUBE_API = key in .env as YOUTUBE_API_KEY (NEVER committed — see LAW 5)
 ANTHROPIC (Claude) = key in .env as ANTHROPIC_API_KEY
 SARVAM (Malayalam ASR) = key in .env as SARVAM_API_KEY
 EMBEDDINGS = provider + key in .env as EMBED_API_KEY
