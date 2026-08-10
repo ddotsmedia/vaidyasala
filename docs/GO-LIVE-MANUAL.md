@@ -23,12 +23,39 @@ and write GO or NO-GO. Then continue here.
 
 Repo → Settings → Secrets and variables → Actions.
 
+Repo: `github.com/ddotsmedia/vaidyasala`.
+
 | Kind | Name | Value |
 |---|---|---|
 | Secret | `VPS_HOST` | `194.164.151.202` |
 | Secret | `VPS_USER` | `root` |
-| Secret | `VPS_SSH_KEY` | contents of the private key that authenticates to the VPS |
-| Variable | `ENABLE_DEPLOY` | `true` — **only after steps 2–4 pass** |
+| Secret | `VPS_SSH_KEY` | private key contents — on this machine that is `~/.ssh/id_ed25519` (there is no `id_rsa`) |
+| Secret | `BUILD_DATABASE_URL` | optional; a DB reachable from the runner, to prerender real content. Omit and pages build empty, then the deploy's revalidate call fills them |
+| Variable | `ENABLE_DEPLOY` | `true` — **only after the pre-flight below passes** |
+
+`GITHUB_TOKEN` is injected automatically; do not create it.
+
+**Use a dedicated deploy key, not a personal one.** This VPS runs 17 other
+projects, and `VPS_USER=root` hands GitHub Actions unrestricted control of all of
+them. At minimum generate a key used only for deploys; better, restrict it in
+`authorized_keys` with `from="<GitHub runner range>"` or move deploys to a
+non-root user that owns `/opt/vaidyasala` and is in the `docker` group.
+
+### Pre-flight — the first deploy WILL fail until these are resolved
+
+1. **`WEB_PORT` is still a placeholder.** `compose.prod.yml` uses
+   `${WEB_PORT:?...}`, so compose aborts rather than guessing — safe, but the
+   deploy stops there. Fill it from `SERVER-AUDIT.md` with a verified-free port.
+2. **No proxy vhost exists yet.** Even with containers healthy, nothing routes
+   `vaidhyasala.com` to `127.0.0.1:${WEB_PORT}`. See §3 above.
+3. **Directory mismatch.** `deploy.yml` does `cd /opt/vaidyasala`; several task
+   docs say `/opt/vaidhyasala` and one says `/opt/lsn`. Confirm which exists on
+   the server and make the two agree before enabling deploys.
+4. **Disk is at 91%** (18G free) per the audit. Images plus volumes need room.
+5. **Two compose files disagree.** `infra/docker/compose.prod.yml` pulls
+   `ghcr.io/ddotsmedia/vaidyasala/*`; the root `docker-compose.yml` added later
+   references `vaidhyasala/web:latest`. Decide which one the server uses — the
+   deploy job drives the former.
 
 Prove the images build *before* wiring the deploy:
 
