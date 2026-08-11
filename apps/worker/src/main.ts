@@ -24,6 +24,7 @@ import { createStatsRefreshProcessor } from "./jobs/stats-refresh";
 import { createYtPollProcessor } from "./jobs/yt-poll";
 import { createSeoPingProcessor } from "./jobs/seo-ping";
 import { createNewsletterAssembleProcessor } from "./jobs/newsletter-assemble";
+import { initializeBackfillQueue } from "./jobs/youtube-backfill";
 import {
   createSeoPullProcessor,
   createLinkCrawlProcessor,
@@ -134,6 +135,14 @@ async function main(): Promise<void> {
   workers.forEach(attachDlq);
 
   await registerCron();
+  try {
+    const backfillQueue = await initializeBackfillQueue();
+    if (backfillQueue) {
+      log("[worker] YouTube backfill queue ready");
+    }
+  } catch (error) {
+    log(`[worker] backfill queue init failed: ${error}`);
+  }
   log(`[worker] ready · workers=${workers.length} · pipelineStages=${pipelineStageCount()}`);
 
   const shutdown = async (signal: string): Promise<void> => {
