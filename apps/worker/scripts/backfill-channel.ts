@@ -80,6 +80,7 @@ async function main(): Promise<void> {
 
   let created = 0;
   let updated = 0;
+  let promoted = 0;
   let failed = 0;
 
   // 50 is the API's batch ceiling for videos.list, so batches are shaped by the
@@ -100,6 +101,7 @@ async function main(): Promise<void> {
         docs.push(r.doc);
         if (r.created) created += 1;
         else updated += 1;
+        if (r.promoted) promoted += 1;
       } catch (err) {
         failed += 1;
         // One bad video must not abandon the other 502.
@@ -109,12 +111,12 @@ async function main(): Promise<void> {
 
     if (search && docs.length) await search.upsertVideos(docs);
     const done = Math.min(i + 50, ids.length);
-    console.log(`[backfill] ${done}/${ids.length} · created=${created} updated=${updated} failed=${failed}`);
+    console.log(`[backfill] ${done}/${ids.length} · created=${created} updated=${updated} promoted=${promoted} failed=${failed}`);
     if (done < ids.length) await sleep(flags.delayMs);
   }
 
   console.log(
-    `[backfill] done — created=${created} updated=${updated} failed=${failed}` +
+    `[backfill] done — created=${created} updated=${updated} promoted=${promoted} failed=${failed}` +
       (flags.publish ? "" : " · imported as INGESTING (use --publish to make them live)"),
   );
 }

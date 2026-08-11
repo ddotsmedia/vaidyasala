@@ -101,13 +101,40 @@ export interface UpsertResult {
   views: number;
   likes: number;
   created: boolean;
+  /** Existing INGESTING row flipped to PUBLISHED by --publish. */
+  promoted: boolean;
   doc: VideoSearchDoc;
 }
 
 /**
+ * Should an EXISTING row be promoted to PUBLISHED on this run?
+ *
+ * `--publish` has to work on a second pass, or the intended flow — import
+ * everything, review it, then publish — silently does nothing because the row
+ * already exists and the upsert's update branch never touched status.
+ *
+ * Only INGESTING is promoted:
+ *   · HIDDEN is an editor's deliberate decision, not a bulk import's to reverse
+ *   · PROCESSING is mid-pipeline and not ready to be seen
+ *   · PUBLISHED is already there — re-publishing would reset publishedAt
+ * Nothing here ever demotes. Pure so it can be tested without a database.
+ */
+export function promotionFor(
+  existingStatus: VideoStatus | null,
+  opts: { publish: boolean; existingPublishedAt: Date | null; ytPublishedAt: Date },
+): { status: VideoStatus; publishedAt: Date } | Record<string, never> {
+  if (!opts.publish || existingStatus !== VideoStatus.INGESTING) return {};
+  return {
+    status: VideoStatus.PUBLISHED,
+    // Keep an existing date if one was somehow set; otherwise use YouTube's.
+    publishedAt: opts.existingPublishedAt ?? opts.ytPublishedAt,
+  };
+}
+
+/**
  * Write one video. Idempotent: an existing row has its metadata and stats
- * refreshed but keeps its slug and status — a published URL must not move, and
- * re-running must never quietly un-publish or re-publish anything.
+ * refreshed and keeps its slug — a published URL must not move — and its status
+ * only ever moves forward, via promotionFor.
  */
 export async function upsertVideo(
   prisma: PrismaClient,
@@ -130,7 +157,13 @@ export async function upsertVideo(
 
   const existing = await prisma.video.findUnique({
     where: { youtubeId: item.id },
-    select: { id: true },
+    select: { id: true, status: true, publishedAt: true },
+  });
+
+  const promote = promotionFor(existing?.status ?? null, {
+    publish: opts.publish ?? false,
+    existingPublishedAt: existing?.publishedAt ?? null,
+    ytPublishedAt,
   });
 
   const video = await prisma.video.upsert({
@@ -153,6 +186,7 @@ export async function upsertVideo(
       durationSec,
       thumbnails,
       stats: { views, likes },
+      ...promote,
     },
   });
 
@@ -163,6 +197,7 @@ export async function upsertVideo(
     views,
     likes,
     created: !existing,
+    promoted: Object.keys(promote).length > 0,
     doc: buildVideoSearchDoc({
       id: video.id,
       slug: video.slug,
