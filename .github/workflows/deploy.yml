@@ -85,10 +85,19 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script_stop: true
-          envs: GITHUB_SHA,GITHUB_ACTOR,REGISTRY_TOKEN
+          envs: GITHUB_SHA,GITHUB_ACTOR,REGISTRY_TOKEN,DEPLOY_DIR
           script: |
             set -euo pipefail
-            cd /opt/vaidyasala
+            # The repo has disagreed with itself about /opt/vaidyasala vs
+            # /opt/vaidhyasala. Configurable, and fails loudly rather than
+            # deploying into a directory that does not exist.
+            DEPLOY_DIR="${DEPLOY_DIR:-/opt/vaidyasala}"
+            if [ ! -d "$DEPLOY_DIR" ]; then
+              echo "✗ $DEPLOY_DIR does not exist. Set the DEPLOY_DIR repo variable"
+              echo "  to the directory this project actually uses on the server."
+              exit 1
+            fi
+            cd "$DEPLOY_DIR"
 
             COMPOSE="docker compose -p vaidyasala -f compose.prod.yml"
             PREV_TAG="$(grep -E '^TAG=' .env | cut -d= -f2 || echo latest)"
@@ -166,4 +175,5 @@ jobs:
         env:
           GITHUB_SHA: ${{ github.sha }}
           GITHUB_ACTOR: ${{ github.actor }}
+          DEPLOY_DIR: ${{ vars.DEPLOY_DIR }}
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}

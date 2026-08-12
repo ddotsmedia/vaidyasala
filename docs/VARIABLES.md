@@ -24,8 +24,11 @@ DOCKER = already installed — never reinstall/upgrade it
    NOTHING may be stopped, restarted, reconfigured, or port-conflicted.
    Every server decision starts with the Phase 7-PRE read-only audit.
 VAIDYASALA_ROOT = /opt/vaidyasala        # our ONLY writable area on the server
-WEB_PORT = <chosen by 7-PRE audit — a free high port, e.g. 8xxx>
-EXISTING_PROXY = <found by 7-PRE audit: nginx | traefik | caddy | NPM | none>
+WEB_PORT = 8888                          # verified free in the 7-PRE audit
+EXISTING_PROXY = nginx                   # host-level, owns :80/:443; add ONE vhost
+DEPLOY_DIR = /opt/vaidyasala             # deploy.yml target; override with the
+                                         # DEPLOY_DIR repo variable if the server
+                                         # actually uses /opt/vaidhyasala
 
 ## CLOUDFLARE
 CF_ACCOUNT_ID = <id>
