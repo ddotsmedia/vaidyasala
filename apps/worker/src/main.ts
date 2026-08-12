@@ -135,14 +135,7 @@ async function main(): Promise<void> {
   workers.forEach(attachDlq);
 
   await registerCron();
-  try {
-    const backfillQueue = await initializeBackfillQueue();
-    if (backfillQueue) {
-      log("[worker] YouTube backfill queue ready");
-    }
-  } catch (error) {
-    log(`[worker] backfill queue init failed: ${error}`);
-  }
+  if (initializeBackfillQueue()) log("[worker] backfill queue ready");
   log(`[worker] ready · workers=${workers.length} · pipelineStages=${pipelineStageCount()}`);
 
   const shutdown = async (signal: string): Promise<void> => {

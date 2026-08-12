@@ -1,90 +1,121 @@
-import { NextRequest, NextResponse } from "next/server";
-import { Queue } from "bullmq";
-import { redis } from "@vaidyasala/core";
-import { QUEUE_NAME, YouTubeBackfillJobData } from "@vaidyasala/worker/jobs/youtube-backfill";
+import { NextResponse } from "next/server";
+import {
+  BACKFILL_JOB_NAME,
+  backfillJobSchema,
+  type BackfillJobData,
+} from "@vaidyasala/core/queue";
+import { authorize } from "@/lib/authz";
+import { backfillQueue } from "@/lib/queue";
 
-export async function GET(req: NextRequest) {
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+/**
+ * Admin control for the channel backfill (§7B step 2).
+ *
+ * ADMIN-gated. Without it, an unauthenticated POST could import the whole
+ * catalogue or publish every unreviewed video on the site — the queue name and
+ * body shape are in the repo, so the endpoint would be trivially guessable.
+ *
+ * The job contract lives in @vaidyasala/core/queue, NOT in apps/worker: web and
+ * worker are separate deployables with no dependency edge between them, and a
+ * cross-app import breaks the web build.
+ */
+
+/** GET — queue depth and recent jobs, for the admin UI. */
+export async function GET(): Promise<Response> {
+  const authz = await authorize("ADMIN");
+  if (!authz.ok) {
+    return NextResponse.json(
+      { error: authz.reason },
+      { status: authz.reason === "unauthenticated" ? 401 : 403 },
+    );
+  }
+
   try {
-    const queue = new Queue(QUEUE_NAME, { connection: redis });
-
     const [active, delayed, waiting, completed, failed] = await Promise.all([
-      queue.getActiveCount(),
-      queue.getDelayedCount(),
-      queue.getWaitingCount(),
-      queue.getCompletedCount(),
-      queue.getFailedCount(),
+      backfillQueue.getActiveCount(),
+      backfillQueue.getDelayedCount(),
+      backfillQueue.getWaitingCount(),
+      backfillQueue.getCompletedCount(),
+      backfillQueue.getFailedCount(),
     ]);
 
-    const recentJobs = await queue.getJobs(["active", "completed", "failed"], 0, 10);
-
-    const jobsInfo = recentJobs.map((job) => ({
-      id: job.id,
-      state: job.getState(),
-      data: job.data,
-      progress: job.progress(),
-      attempts: job.attempts,
-      failedReason: job.failedReason,
-      finishedOn: job.finishedOn,
-      timestamp: job.timestamp,
-    }));
-
-    return NextResponse.json({
-      queue: {
-        active,
-        delayed,
-        waiting,
-        completed,
-        failed,
-      },
-      recentJobs: jobsInfo,
-    });
-  } catch (error) {
-    console.error("[backfill-api] GET failed:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 }
+    const jobs = await backfillQueue.getJobs(["active", "waiting", "completed", "failed"], 0, 9);
+    const recentJobs = await Promise.all(
+      // getState() is async — awaiting it matters, or every job serialises as {}.
+      jobs.map(async (job) => ({
+        id: job.id,
+        state: await job.getState(),
+        data: job.data as BackfillJobData,
+        progress: job.progress,
+        attemptsMade: job.attemptsMade,
+        failedReason: job.failedReason,
+        finishedOn: job.finishedOn,
+        timestamp: job.timestamp,
+      })),
     );
+
+    return NextResponse.json(
+      { queue: { active, delayed, waiting, completed, failed }, recentJobs },
+      { headers: { "cache-control": "no-store" } },
+    );
+  } catch (err) {
+    console.error("[backfill-api] GET failed:", err);
+    return NextResponse.json({ error: "queue unavailable" }, { status: 503 });
   }
 }
 
-export async function POST(req: NextRequest) {
+/** POST — queue an import or a publish pass. */
+export async function POST(req: Request): Promise<Response> {
+  const authz = await authorize("ADMIN");
+  if (!authz.ok) {
+    return NextResponse.json(
+      { error: authz.reason },
+      { status: authz.reason === "unauthenticated" ? 401 : 403 },
+    );
+  }
+
+  let json: unknown;
   try {
-    const body = (await req.json()) as Partial<YouTubeBackfillJobData>;
+    json = await req.json();
+  } catch {
+    json = {};
+  }
+  const parsed = backfillJobSchema.safeParse(json);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "invalid body", issues: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    );
+  }
 
-    const queue = new Queue<YouTubeBackfillJobData>(QUEUE_NAME, { connection: redis });
-
-    const activeCount = await queue.getActiveCount();
-    if (activeCount > 0) {
+  try {
+    // One catalogue-wide pass at a time; a second would double every write.
+    const [active, waiting] = await Promise.all([
+      backfillQueue.getActiveCount(),
+      backfillQueue.getWaitingCount(),
+    ]);
+    if (active + waiting > 0) {
       return NextResponse.json(
-        { error: "Backfill already running. Wait for it to complete." },
-        { status: 409 }
+        { error: "a backfill is already queued or running" },
+        { status: 409 },
       );
     }
 
-    const job = await queue.add(
-      "youtube-backfill",
-      {
-        limit: body.limit || 999999,
-        dryRun: body.dryRun || false,
-        delay: body.delay || 1000,
-        triggerMode: body.triggerMode || "import",
-      },
-      {
-        jobId: `backfill-${Date.now()}`,
-        removeOnComplete: { age: 3600 },
-      }
-    );
-
-    return NextResponse.json({
-      message: "Backfill job queued",
-      jobId: job.id,
-      mode: body.triggerMode || "import",
+    const job = await backfillQueue.add(BACKFILL_JOB_NAME, parsed.data, {
+      attempts: 2,
+      backoff: { type: "exponential", delay: 5000 },
+      removeOnComplete: { age: 86_400, count: 20 },
+      removeOnFail: { age: 604_800 },
     });
-  } catch (error) {
-    console.error("[backfill-api] POST failed:", error);
+
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 }
+      { jobId: job.id, ...parsed.data },
+      { status: 202, headers: { "cache-control": "no-store" } },
     );
+  } catch (err) {
+    console.error("[backfill-api] POST failed:", err);
+    return NextResponse.json({ error: "could not queue job" }, { status: 503 });
   }
 }

@@ -12,8 +12,35 @@ export const QUEUE_NAMES = {
   pipeline: "vaidyasala.pipeline",
   ops: "vaidyasala.ops",
   dlq: "vaidyasala.dlq",
+  backfill: "vaidyasala.backfill",
 } as const;
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];
+
+/**
+ * Channel backfill job contract (§7B step 2).
+ *
+ * Lives here, in the shared package, because BOTH the worker (which runs it)
+ * and the web admin API (which enqueues it) need it. apps/web must never import
+ * from apps/worker — they are separate deployables with no dependency edge, and
+ * eslint forbids the reverse direction for the same reason.
+ */
+export const backfillJobSchema = z.object({
+  /** Stop after N videos. Omit for the whole channel. */
+  limit: z.coerce.number().int().min(1).max(100_000).optional(),
+  /** Fetch and count, write nothing. */
+  dryRun: z.coerce.boolean().default(false),
+  /** Pause between write batches, ms. */
+  delayMs: z.coerce.number().int().min(0).max(60_000).default(250),
+  /**
+   * "import" writes metadata as INGESTING; "publish" promotes previously
+   * imported INGESTING videos. Publishing is a separate, deliberate step so an
+   * import can never make 500 unreviewed videos live as a side effect.
+   */
+  mode: z.enum(["import", "publish"]).default("import"),
+});
+export type BackfillJobData = z.infer<typeof backfillJobSchema>;
+
+export const BACKFILL_JOB_NAME = "channel-backfill";
 
 /**
  * Per-video AI chain (§8.2), in dependency order. INGEST runs first on its own

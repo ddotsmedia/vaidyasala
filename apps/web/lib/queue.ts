@@ -39,6 +39,7 @@ const queues =
     [QUEUE_NAMES.ingest]: new Queue(QUEUE_NAMES.ingest, { connection }),
     [QUEUE_NAMES.pipeline]: new Queue(QUEUE_NAMES.pipeline, { connection }),
     [QUEUE_NAMES.ops]: new Queue(QUEUE_NAMES.ops, { connection }),
+    [QUEUE_NAMES.backfill]: new Queue(QUEUE_NAMES.backfill, { connection }),
   };
 if (process.env.NODE_ENV !== "production") globalForQueue.queues = queues;
 const ingestQueue = queues[QUEUE_NAMES.ingest]!;
@@ -102,3 +103,6 @@ export async function enqueueSeoPing(input: SeoPingInput): Promise<string> {
   });
   return jobId;
 }
+
+/** The backfill queue, shared with the worker via QUEUE_NAMES (§7B step 2). */
+export const backfillQueue = queues[QUEUE_NAMES.backfill]!;

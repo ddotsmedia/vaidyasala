@@ -22,6 +22,8 @@ export const queues: Record<QueueName, Queue> = {
     defaultJobOptions: JOB_OPTS,
   }),
   [QUEUE_NAMES.ops]: new Queue(QUEUE_NAMES.ops, { connection, defaultJobOptions: JOB_OPTS }),
+  // Backfill: its own queue so a catalogue-wide import cannot starve ingest.
+  [QUEUE_NAMES.backfill]: new Queue(QUEUE_NAMES.backfill, { connection }),
   // Dead-letter queue: terminal failures are copied here for admin visibility.
   [QUEUE_NAMES.dlq]: new Queue(QUEUE_NAMES.dlq, {
     connection,
