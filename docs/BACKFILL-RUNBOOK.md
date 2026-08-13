@@ -160,3 +160,48 @@ docker ps --format '{{.Names}}\t{{.Status}}' | grep -v '^vaidyasala-'
 
 Compare against `docs/SERVER-AUDIT.md`. Nothing outside `vaidyasala-*` should
 have changed.
+
+---
+
+## Appendix — setting `ADMIN_API_TOKEN` safely
+
+Generate and append in **one remote shell**, so the substitution cannot happen
+on the local side:
+
+```bash
+ssh root@194.164.151.202 'cd "$DEPLOY_DIR" && \
+  grep -q "^ADMIN_API_TOKEN=." .env || printf "ADMIN_API_TOKEN=%s\n" "$(openssl rand -hex 32)" >> .env'
+```
+
+`grep -q "^ADMIN_API_TOKEN=."` — the trailing `.` requires at least one
+character, so a previously-written empty `ADMIN_API_TOKEN=` is treated as absent
+and replaced rather than kept.
+
+Then restart web so it picks the value up (env is read at process start):
+
+```bash
+docker compose -p vaidyasala -f infra/docker/compose.prod.yml up -d web
+```
+
+### Watch the quoting
+
+```bash
+# WRONG — $( ) may expand LOCALLY, writing an empty value
+ssh root@HOST "echo \"ADMIN_API_TOKEN=$(openssl rand -hex 16)\" >> .env"
+
+# WRONG — quotes terminate early; the parens are parsed by the LOCAL shell
+ssh root@HOST 'cd /opt/x && grep -E '^(WEB_PORT|ADMIN_API_TOKEN)=' .env'
+
+# RIGHT — single-quote the whole remote command, escape nothing inside
+ssh root@HOST 'cd /opt/x && grep -E "^(WEB_PORT|ADMIN_API_TOKEN)=" .env'
+```
+
+### Duplicate keys in `.env`
+
+Docker Compose `env_file` takes the **last** occurrence — it does not error and
+does not warn. So a stale key above a good one is harmless, and a stale key
+*below* a good one silently wins. Find and fix with:
+
+```bash
+grep -n "^YOUTUBE_API_KEY=" .env     # keep the last, delete the rest
+```

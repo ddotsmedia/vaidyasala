@@ -23,7 +23,11 @@ export const dynamic = "force-dynamic";
 async function authorizeRequest(
   req: Request,
 ): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
-  const expected = process.env.ADMIN_API_TOKEN ?? process.env.ADMIN_INGEST_TOKEN;
+  // Truthiness, not `??`: a present-but-empty ADMIN_API_TOKEN (what a
+  // mis-quoted `echo "ADMIN_API_TOKEN=$(openssl rand -hex 16)"` writes when the
+  // substitution happens on the wrong side of an ssh quote) is "" — not nullish
+  // — and would silently disable the ADMIN_INGEST_TOKEN fallback.
+  const expected = firstNonEmpty(process.env.ADMIN_API_TOKEN, process.env.ADMIN_INGEST_TOKEN);
   const provided =
     req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ??
     req.headers.get("x-admin-token") ??
@@ -39,6 +43,15 @@ async function authorizeRequest(
     status: reason === "unauthenticated" ? 401 : 403,
     error: reason,
   };
+}
+
+/** First value that is set and not blank. A blank secret is not a secret. */
+function firstNonEmpty(...values: (string | undefined)[]): string | undefined {
+  for (const v of values) {
+    const trimmed = v?.trim();
+    if (trimmed) return trimmed;
+  }
+  return undefined;
 }
 
 /** Compare without leaking length or position through timing. */
