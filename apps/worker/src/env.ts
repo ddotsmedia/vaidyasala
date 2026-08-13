@@ -2,7 +2,7 @@ import { z } from "zod";
 
 /** Worker runtime env, validated once at boot (LAW 4: every input crosses Zod). */
 const envSchema = z.object({
-  REDIS_URL: z.string().url().default("redis://localhost:56379"),
+  REDIS_URL: z.string().url().default("redis://localhost:6379"),
   DATABASE_URL: z.string().url().optional(),
   WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(32).default(4),
 
@@ -28,7 +28,7 @@ const envSchema = z.object({
   YT_DLP_PATH: z.string().default("yt-dlp"),
 
   // Meilisearch (index config in Phase 4). Absent master key ⇒ index-search skips.
-  MEILI_URL: z.string().url().default("http://localhost:57700"),
+  MEILI_URL: z.string().url().default("http://localhost:7700"),
   MEILI_MASTER_KEY: z.string().optional(),
 
   // AI keys (Phase 2C). Absent ⇒ pipeline runs on fixtures, live BLOCKED (LAW 1).
