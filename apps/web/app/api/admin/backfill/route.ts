@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import {
   BACKFILL_JOB_NAME,
@@ -11,11 +12,50 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
+ * Two ways in, because this endpoint has two callers:
+ *   · an ADMIN session cookie, for the admin UI;
+ *   · a bearer token, for curl/CI — a browser session cannot be scripted.
+ *
+ * The token is opt-in: with ADMIN_API_TOKEN unset (falling back to
+ * ADMIN_INGEST_TOKEN, which deployments already have), only the session path
+ * works. It is never a default-open door.
+ */
+async function authorizeRequest(
+  req: Request,
+): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
+  const expected = process.env.ADMIN_API_TOKEN ?? process.env.ADMIN_INGEST_TOKEN;
+  const provided =
+    req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ??
+    req.headers.get("x-admin-token") ??
+    "";
+
+  if (expected && provided && constantTimeEquals(provided, expected)) return { ok: true };
+
+  const authz = await authorize("ADMIN");
+  if (authz.ok) return { ok: true };
+  const reason = authz.reason ?? "unauthenticated";
+  return {
+    ok: false,
+    status: reason === "unauthenticated" ? 401 : 403,
+    error: reason,
+  };
+}
+
+/** Compare without leaking length or position through timing. */
+function constantTimeEquals(a: string, b: string): boolean {
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  if (ab.length !== bb.length) return false;
+  return timingSafeEqual(ab, bb);
+}
+
+/**
  * Admin control for the channel backfill (§7B step 2).
  *
- * ADMIN-gated. Without it, an unauthenticated POST could import the whole
- * catalogue or publish every unreviewed video on the site — the queue name and
- * body shape are in the repo, so the endpoint would be trivially guessable.
+ * ADMIN-gated (session cookie, or ADMIN_API_TOKEN for scripted access). Without
+ * auth an unauthenticated POST could import the whole catalogue or publish every
+ * unreviewed video — the queue name and body shape are in the repo, so the
+ * endpoint would be trivially guessable.
  *
  * The job contract lives in @vaidyasala/core/queue, NOT in apps/worker: web and
  * worker are separate deployables with no dependency edge between them, and a
@@ -23,14 +63,9 @@ export const dynamic = "force-dynamic";
  */
 
 /** GET — queue depth and recent jobs, for the admin UI. */
-export async function GET(): Promise<Response> {
-  const authz = await authorize("ADMIN");
-  if (!authz.ok) {
-    return NextResponse.json(
-      { error: authz.reason },
-      { status: authz.reason === "unauthenticated" ? 401 : 403 },
-    );
-  }
+export async function GET(req: Request): Promise<Response> {
+  const auth = await authorizeRequest(req);
+  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   try {
     const [active, delayed, waiting, completed, failed] = await Promise.all([
@@ -68,13 +103,8 @@ export async function GET(): Promise<Response> {
 
 /** POST — queue an import or a publish pass. */
 export async function POST(req: Request): Promise<Response> {
-  const authz = await authorize("ADMIN");
-  if (!authz.ok) {
-    return NextResponse.json(
-      { error: authz.reason },
-      { status: authz.reason === "unauthenticated" ? 401 : 403 },
-    );
-  }
+  const auth = await authorizeRequest(req);
+  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   let json: unknown;
   try {
