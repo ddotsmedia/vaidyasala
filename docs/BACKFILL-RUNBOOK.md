@@ -205,3 +205,39 @@ does not warn. So a stale key above a good one is harmless, and a stale key
 ```bash
 grep -n "^YOUTUBE_API_KEY=" .env     # keep the last, delete the rest
 ```
+
+### Removing a duplicate key — back up first
+
+**Never edit `.env` in place without a backup.** It holds the only copy of the
+DB password and the Meili master key; a bad `sed -i` is unrecoverable.
+
+```bash
+cd "$DEPLOY_DIR"
+cp -n .env ".env.bak.$(date +%s)"
+
+# Keep the LAST YOUTUBE_API_KEY, preserve every other line and its order.
+tac .env | awk '!/^YOUTUBE_API_KEY=/ || !seen++' | tac > .env.new
+diff .env .env.new          # review before replacing — expect ONLY the stale key gone
+mv .env.new .env
+```
+
+⚠️ This does **not** work and destroys the file:
+
+```bash
+sed -i "1,/^YOUTUBE_API_KEY=/!b; /^YOUTUBE_API_KEY=/!d" .env
+```
+
+The range `1,/^YOUTUBE_API_KEY=/` covers line 1 through the *first* match, and
+`/^YOUTUBE_API_KEY=/!d` deletes every line in that range that is not a
+YOUTUBE_API_KEY line. Tested on a 7-line sample: it deleted `WEB_PORT`,
+`DATABASE_URL` and `POSTGRES_PASSWORD`, and kept **both** YouTube keys — the
+opposite of the intent.
+
+### `grep -c` chained with `&&` stops at the first zero
+
+```bash
+grep -c "^A=" .env && grep -c "^B=" .env      # prints ONE line if A is missing
+```
+
+`grep -c` exits 1 when the count is 0, so `&&` short-circuits and the later
+checks never run. Use `;` or run them separately if you want all four counts.
