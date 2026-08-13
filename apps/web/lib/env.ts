@@ -4,7 +4,7 @@ import { z } from "zod";
 const envSchema = z.object({
   NEXT_PUBLIC_SITE_URL: z.string().url().default("http://localhost:3000"),
   DATABASE_URL: z.string().url().optional(),
-  REDIS_URL: z.string().url().default("redis://localhost:56379"),
+  REDIS_URL: z.string().url().default("redis://localhost:6379"),
 
   // WebSub/PubSubHubbub (§9.1): GET verify token + POST HMAC secret.
   WEBSUB_VERIFY_TOKEN: z.string().optional(),
@@ -22,7 +22,7 @@ const envSchema = z.object({
   EMAIL_FROM: z.string().default("Vaidyasala <newsletter@vaidhyasala.com>"),
 
   // Meilisearch (§14). Absent master key ⇒ search returns empty (still logged).
-  MEILI_URL: z.string().url().default("http://localhost:57700"),
+  MEILI_URL: z.string().url().default("http://localhost:7700"),
   MEILI_MASTER_KEY: z.string().optional(),
 
   // AI answer (§6.4/§14). Absent ⇒ fixture mode: embeddings skipped (lexical
