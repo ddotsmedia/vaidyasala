@@ -1,17 +1,45 @@
 import type { Metadata } from "next";
-import { getFunnel, getLeaderboard, getAiCost } from "@/lib/admin/analytics";
+import {
+  getFunnel,
+  getLeaderboard,
+  getAiCost,
+  getWatchTimeSeries,
+  getIngestSeries,
+  getTopicPerformance,
+  getJourneyFunnel,
+} from "@/lib/admin/analytics";
+import { AnalyticsCharts } from "@/components/admin/analytics-charts";
 
 export const metadata: Metadata = { title: "Analytics" };
 export const dynamic = "force-dynamic";
 
-/** /admin/analytics (§7.6) — funnel, video leaderboard, AI cost per video. */
+/**
+ * /admin/analytics (§7.6) — charts over the same live data as the tables below
+ * them. Every series is aggregated server-side; the chart island receives
+ * finished numbers and invents none.
+ */
 export default async function AnalyticsPage() {
-  const [funnel, leaders, cost] = await Promise.all([getFunnel(), getLeaderboard(), getAiCost()]);
+  const [funnel, leaders, cost, watchTime, ingest, topics, journey] = await Promise.all([
+    getFunnel(),
+    getLeaderboard(),
+    getAiCost(),
+    getWatchTimeSeries(30),
+    getIngestSeries(60),
+    getTopicPerformance(),
+    getJourneyFunnel(),
+  ]);
   const top = funnel[0]?.count || 1;
 
   return (
     <div className="flex flex-col gap-8">
       <h1 className="text-xl font-semibold">Analytics</h1>
+
+      <AnalyticsCharts
+        watchTime={watchTime}
+        ingest={ingest}
+        topics={topics}
+        journey={journey}
+      />
 
       {/* Funnel */}
       <section className="flex flex-col gap-3">
