@@ -65,6 +65,11 @@ export {
 export { TopicChip, type TopicChipProps } from "./components/topic-chip";
 export { VideoCard, type VideoCardProps } from "./components/video-card";
 export {
+  HighlightedText,
+  type HighlightedTextProps,
+} from "./components/highlighted-text";
+export { splitMatches, type TextRun } from "./lib/highlight";
+export {
   SubscribeCTA,
   type SubscribeCTAProps,
   type SubscribeVariant,

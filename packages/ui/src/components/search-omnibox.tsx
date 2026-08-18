@@ -13,6 +13,7 @@ import {
   CommandList,
 } from "../primitives/command";
 import { Badge } from "../primitives/badge";
+import { HighlightedText } from "./highlighted-text";
 import type { SearchGroup } from "./types";
 
 export type ScriptHint = "malayalam" | "latin" | "manglish";
@@ -91,8 +92,14 @@ export function SearchOmnibox({
                   {group.items.map((item) => (
                     <CommandItem key={item.id} value={item.id} onSelect={() => onSelect?.(item.href)}>
                       <span className="flex flex-col">
-                        <span className="text-text">{item.label}</span>
-                        {item.sublabel && <span className="text-xs text-text-dim">{item.sublabel}</span>}
+                        <span className="text-text">
+                          <HighlightedText text={item.label} query={query} />
+                        </span>
+                        {item.sublabel && (
+                          <span className="text-xs text-text-dim">
+                            <HighlightedText text={item.sublabel} query={query} />
+                          </span>
+                        )}
                       </span>
                     </CommandItem>
                   ))}

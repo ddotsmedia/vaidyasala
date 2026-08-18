@@ -1,36 +1,11 @@
 "use client";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { formatDuration } from "@vaidyasala/ui";
+import { formatDuration, HighlightedText } from "@vaidyasala/ui";
 import type { TranscriptSegment } from "@vaidyasala/core/validation";
 import { usePlayer } from "./player-context";
 
 type Lang = "ml" | "en";
-
-/**
- * Wrap occurrences of `needle` in <mark>. Split on the lowercased haystack but
- * slice from the original, so Malayalam text is never re-cased in the output.
- */
-function highlight(text: string, needle: string): React.ReactNode {
-  const hay = text.toLocaleLowerCase();
-  const find = needle.toLocaleLowerCase();
-  const out: React.ReactNode[] = [];
-  let from = 0;
-  for (;;) {
-    const at = hay.indexOf(find, from);
-    if (at === -1) break;
-    if (at > from) out.push(text.slice(from, at));
-    out.push(
-      <mark key={at} className="bg-brand/20 text-text rounded-sm px-0.5">
-        {text.slice(at, at + needle.length)}
-      </mark>,
-    );
-    from = at + needle.length;
-  }
-  if (out.length === 0) return text;
-  if (from < text.length) out.push(text.slice(from));
-  return out;
-}
 
 /**
  * TranscriptView (§4): playhead-synced, ML/EN toggle, reading mode. The active
@@ -169,7 +144,7 @@ export function TranscriptView({ segments }: { segments: TranscriptSegment[] }) 
                       className="font-ml leading-[1.8]"
                       lang={lang === "ml" ? "ml" : undefined}
                     >
-                      {trimmed ? highlight(text, trimmed) : text}
+                      <HighlightedText text={text} query={trimmed} />
                     </span>
                   </button>
                 </li>
