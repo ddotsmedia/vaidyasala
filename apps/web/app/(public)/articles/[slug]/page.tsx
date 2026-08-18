@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import { VideoCard } from "@vaidyasala/ui";
+import { CARD_SIZES } from "@/lib/thumbnail";
 import { getArticleBySlug, publishedArticleSlugs } from "@/lib/feeds";
 import { safeStaticParams } from "@/lib/static-params";
 import { MedicalDisclaimer } from "@/components/seo/medical-disclaimer";
@@ -99,7 +100,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
         <div className="border-border bg-surface flex flex-col gap-2 rounded-xl border p-4">
           <p className="text-text-dim text-sm">Watch the source video</p>
           <Link href={`/watch/${article.sourceVideo.slug}`} className="block max-w-md">
-            <VideoCard video={article.sourceVideo} size="md" />
+            <VideoCard video={article.sourceVideo} size="md" imageSizes={CARD_SIZES.md} />
           </Link>
         </div>
       ) : null}

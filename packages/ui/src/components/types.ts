@@ -11,6 +11,11 @@ export interface VideoCardData {
   titleMl: string;
   titleEn?: string;
   thumbnailUrl: string;
+  /**
+   * Optional responsive candidates for `thumbnailUrl`. Supplied by the app
+   * (this package does no data wiring); absent means render `src` alone.
+   */
+  thumbnailSrcSet?: string;
   blurDataUrl?: string;
   durationSec: number;
   topic?: TopicRef;

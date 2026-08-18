@@ -7,6 +7,12 @@ import { formatDuration, type VideoCardData, type VideoCardSize } from "./types"
 export interface VideoCardProps extends React.HTMLAttributes<HTMLDivElement> {
   video: VideoCardData;
   size?: VideoCardSize;
+  /**
+   * `sizes` for the thumbnail, describing the width the card occupies in this
+   * layout. Only meaningful with `video.thumbnailSrcSet`; the app passes
+   * CARD_SIZES[size] rather than this package assuming a grid it cannot see.
+   */
+  imageSizes?: string;
 }
 
 const sizeMap: Record<VideoCardSize, string> = {
@@ -19,7 +25,13 @@ const sizeMap: Record<VideoCardSize, string> = {
  * The workhorse card (§4). Thumbnail with blur-up, duration badge, optional
  * progress bar, topic chip. UI-only — wrap in a link at the call site.
  */
-export function VideoCard({ video, size = "md", className, ...props }: VideoCardProps) {
+export function VideoCard({
+  video,
+  size = "md",
+  imageSizes,
+  className,
+  ...props
+}: VideoCardProps) {
   const progressPct = video.progress ? Math.round(Math.min(1, Math.max(0, video.progress)) * 100) : 0;
   return (
     <div className={cn("group flex flex-col gap-2", sizeMap[size], className)} {...props}>
@@ -27,8 +39,16 @@ export function VideoCard({ video, size = "md", className, ...props }: VideoCard
         {/* UI package is framework-agnostic; apps compose with next/image where needed. */}
         <img
           src={video.thumbnailUrl}
+          srcSet={video.thumbnailSrcSet}
+          // Without `sizes` the browser assumes 100vw and picks the largest
+          // candidate, which would undo the srcset entirely.
+          sizes={video.thumbnailSrcSet ? imageSizes : undefined}
           alt={video.titleEn ?? video.titleMl}
           loading="lazy"
+          // Intrinsic ratio for the decoder; the box is already aspect-video,
+          // so this changes no layout and prevents a reflow if that ever moves.
+          width={1280}
+          height={720}
           className="size-full object-cover transition-transform duration-[var(--dur-base)] group-hover:scale-105"
           style={video.blurDataUrl ? { backgroundImage: `url(${video.blurDataUrl})`, backgroundSize: "cover" } : undefined}
         />

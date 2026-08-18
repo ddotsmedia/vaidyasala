@@ -2,7 +2,7 @@ import "server-only";
 import type { VideoCardData } from "@vaidyasala/ui";
 import { prisma } from "@vaidyasala/db";
 import { getViewerKey } from "./viewer";
-import { thumbnailUrl } from "./video";
+import { cardThumbnail } from "./video";
 
 /**
  * Saved videos for the current viewer (§6.1), newest save first.
@@ -52,7 +52,7 @@ export async function getWatchlist(limit = 60): Promise<VideoCardData[]> {
         slug: v.slug,
         titleMl: v.titleMl,
         titleEn: v.titleEn ?? undefined,
-        thumbnailUrl: thumbnailUrl(v.youtubeId, v.thumbnails),
+        ...cardThumbnail(v.youtubeId, v.thumbnails),
         durationSec: v.durationSec,
         topic: v.primaryTopic ?? undefined,
       };

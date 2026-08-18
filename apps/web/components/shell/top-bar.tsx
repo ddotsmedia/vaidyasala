@@ -62,13 +62,13 @@ export function TopBar() {
             type="button"
             onClick={openSearch}
             aria-label="Search"
-            className="rounded-md p-2 text-text-dim hover:text-text sm:hidden"
+            className="rounded-md p-2 text-text-dim hover:text-text pointer-coarse:min-h-11 pointer-coarse:min-w-11 sm:hidden"
           >
-            <Search className="size-4" />
+            <Search className="mx-auto size-4" />
           </button>
           {/* Icon-only: the label would push the nav past the ⌘K field on
               narrow screens, and the destination is named on arrival. */}
-          <Button asChild variant="ghost" size="sm" aria-label="Saved videos">
+          <Button asChild variant="ghost" size="icon" aria-label="Saved videos">
             <Link href="/watchlist">
               <Bookmark className="size-4" />
             </Link>

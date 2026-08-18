@@ -106,7 +106,7 @@ function ShortcutsDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" aria-label="Keyboard shortcuts">
+        <Button variant="ghost" size="icon" aria-label="Keyboard shortcuts">
           <Keyboard className="size-4" aria-hidden />
         </Button>
       </DialogTrigger>

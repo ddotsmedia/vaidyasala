@@ -3,6 +3,7 @@ import type { Route } from "next";
 import { prisma } from "@vaidyasala/db";
 import { transcriptSegmentSchema, type TranscriptSegment } from "@vaidyasala/core/validation";
 import type { VideoCardData } from "@vaidyasala/ui";
+import { thumbnailSrcSet } from "./thumbnail";
 
 export interface Takeaway {
   ml: string;
@@ -62,6 +63,19 @@ export function thumbnailUrl(
     }
   }
   return `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`;
+}
+
+/**
+ * The two thumbnail fields every VideoCardData needs, from one call. Spread
+ * this rather than setting `thumbnailUrl` alone — a card built without the
+ * srcset silently downloads a 1280×720 still into a ~300px slot.
+ */
+export function cardThumbnail(
+  youtubeId: string,
+  thumbnails: unknown,
+): { thumbnailUrl: string; thumbnailSrcSet: string | undefined } {
+  const url = thumbnailUrl(youtubeId, thumbnails);
+  return { thumbnailUrl: url, thumbnailSrcSet: thumbnailSrcSet(url) };
 }
 
 function channelUrl(): string {
@@ -143,7 +157,7 @@ export async function getVideoBySlug(slug: string): Promise<WatchData | null> {
       slug: e.to.slug,
       titleMl: e.to.titleMl,
       titleEn: e.to.titleEn ?? undefined,
-      thumbnailUrl: thumbnailUrl(e.to.youtubeId, e.to.thumbnails),
+      ...cardThumbnail(e.to.youtubeId, e.to.thumbnails),
       durationSec: e.to.durationSec,
       topic: e.to.primaryTopic
         ? {

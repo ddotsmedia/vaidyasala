@@ -2,6 +2,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { VideoCard } from "@vaidyasala/ui";
+import { CARD_SIZES } from "@/lib/thumbnail";
 import type { TopicVideoItem } from "@/lib/feeds";
 import {
   browse,
@@ -92,7 +93,7 @@ export function TopicVideoBrowser({ videos }: { videos: TopicVideoItem[] }) {
           {result.items.map((v) => (
             <li key={v.slug}>
               <Link href={`/watch/${v.slug}`} className="block">
-                <VideoCard video={v} size="lg" />
+                <VideoCard video={v} size="lg" imageSizes={CARD_SIZES.lg} />
               </Link>
             </li>
           ))}

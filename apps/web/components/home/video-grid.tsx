@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { VideoCard, RelatedRail, type VideoCardData } from "@vaidyasala/ui";
+import { CARD_SIZES } from "@/lib/thumbnail";
 
 const linkItem = (v: VideoCardData) => (
   <Link href={`/watch/${v.slug}`} className="block">
-    <VideoCard video={v} size="md" />
+    <VideoCard video={v} size="md" imageSizes={CARD_SIZES.md} />
   </Link>
 );
 
@@ -25,7 +26,7 @@ export function VideoGrid({ videos }: { videos: VideoCardData[] }) {
     <div className={`grid gap-4 ${GRID_COLS}`}>
       {videos.map((v) => (
         <Link key={v.slug} href={`/watch/${v.slug}`} className="block">
-          <VideoCard video={v} size="lg" />
+          <VideoCard video={v} size="lg" imageSizes={CARD_SIZES.lg} />
         </Link>
       ))}
     </div>

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { RelatedRail, VideoCard, ShareSheet, Button } from "@vaidyasala/ui";
+import { CARD_SIZES } from "@/lib/thumbnail";
 import type { WatchData } from "@/lib/video";
 import { PlayerProvider, usePlayer } from "./player-context";
 import { VideoPlayer } from "./video-player";
@@ -310,7 +311,7 @@ function WatchLayout({ data }: { data: WatchData }) {
             videos={data.related}
             renderItem={(v) => (
               <Link href={`/watch/${v.slug}`} className="block">
-                <VideoCard video={v} size="md" />
+                <VideoCard video={v} size="md" imageSizes={CARD_SIZES.md} />
               </Link>
             )}
           />

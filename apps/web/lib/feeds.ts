@@ -1,7 +1,7 @@
 import "server-only";
 import { prisma } from "@vaidyasala/db";
 import type { VideoCardData } from "@vaidyasala/ui";
-import { thumbnailUrl } from "./video";
+import { cardThumbnail } from "./video";
 
 const cardSelect = {
   slug: true,
@@ -28,7 +28,7 @@ export function toCard(v: CardRow): VideoCardData {
     slug: v.slug,
     titleMl: v.titleMl,
     titleEn: v.titleEn ?? undefined,
-    thumbnailUrl: thumbnailUrl(v.youtubeId, v.thumbnails),
+    ...cardThumbnail(v.youtubeId, v.thumbnails),
     durationSec: v.durationSec,
     topic: v.primaryTopic
       ? { slug: v.primaryTopic.slug, nameMl: v.primaryTopic.nameMl, nameEn: v.primaryTopic.nameEn }

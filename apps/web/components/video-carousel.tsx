@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { VideoCard, type VideoCardData } from "@vaidyasala/ui";
+import { CARD_SIZES } from "@/lib/thumbnail";
 import type { Route } from "next";
 
 export interface VideoCarouselProps {
@@ -99,7 +100,7 @@ export function VideoCarousel({
           {videos.map((v) => (
             <div key={v.slug} className="w-40 shrink-0 snap-start sm:w-56 lg:w-64">
               <Link href={`/watch/${v.slug}`} className="block">
-                <VideoCard video={v} size="md" />
+                <VideoCard video={v} size="md" imageSizes={CARD_SIZES.md} />
               </Link>
             </div>
           ))}
