@@ -43,7 +43,11 @@ export function VideoCard({
           // Without `sizes` the browser assumes 100vw and picks the largest
           // candidate, which would undo the srcset entirely.
           sizes={video.thumbnailSrcSet ? imageSizes : undefined}
-          alt={video.titleEn ?? video.titleMl}
+          // Decorative: the <h3> below carries the title, and the card is
+          // wrapped in a link at every call site, so repeating it here made
+          // screen readers announce the same title twice. It also had no
+          // lang="ml", so a Malayalam title was read with English phonemes.
+          alt=""
           loading="lazy"
           // Intrinsic ratio for the decoder; the box is already aspect-video,
           // so this changes no layout and prevents a reflow if that ever moves.
@@ -53,11 +57,16 @@ export function VideoCard({
           style={video.blurDataUrl ? { backgroundImage: `url(${video.blurDataUrl})`, backgroundSize: "cover" } : undefined}
         />
         <Badge variant="default" className="absolute bottom-1.5 right-1.5 bg-black/75 text-white">
+          {/* "12:34" alone is ambiguous read aloud between a duration and a
+              timestamp; the prefix is invisible but disambiguates it. */}
+          <span className="sr-only">Duration </span>
           {formatDuration(video.durationSec)}
         </Badge>
         {progressPct > 0 && (
           <div className="absolute inset-x-0 bottom-0 h-1 bg-black/40">
             <div className="h-full bg-cta" style={{ width: `${progressPct}%` }} />
+            {/* Watch progress was conveyed by a coloured bar alone (WCAG 1.4.1). */}
+            <span className="sr-only">{progressPct}% watched</span>
           </div>
         )}
       </div>
