@@ -167,16 +167,32 @@ Worth checking any new script against this list.
 
 ## 7. Genuinely open work
 
-Ordered by value, all buildable against what exists:
+1. **Run the deployment.** Everything else is invisible until then.
+2. Recommendations via pgvector nearest-neighbour on `Video.embedding`, rather
+   than the precomputed `relatedFrom` relation.
+3. Personal viewing stats keyed on `viewerKey`.
+4. `sizes` audit on image call sites that lack it.
+5. Match highlighting in the search palette.
 
-1. Run the deployment. Everything below is invisible until then.
-2. `prefers-reduced-motion` guards on the Motion animations (real AA gap).
-3. Player: playback speed, `C`/`F`/`P`/`T` shortcuts, theater mode, persisted
-   volume and speed — all via the YouTube IFrame API.
-4. Watchlist page + toggle, reusing `VideoReaction.bookmarked`.
-5. Recommendations via pgvector nearest-neighbour on `Video.embedding`, rather
-   than the current `qualityScore` ordering.
-6. Personal viewing stats keyed on `viewerKey`.
-7. `VideoCard` skeleton twin (§3D requires one; it does not exist).
-8. `sizes` audit on image call sites that lack it.
-9. Match highlighting in the search palette.
+### Closed since
+
+- **Player** — speed (guarded by `getAvailablePlaybackRates`), theater mode,
+  fullscreen via the Fullscreen API on our wrapper, and `K`/`J`/`L`/`0`–`9`/
+  `Home`/`End`/`<`/`>`/`T`/`F`/`?` on top of the existing keys. Volume, mute and
+  speed persist per device (`046c5a3`).
+- **Watchlist** — `/watchlist` over the existing `VideoReaction.bookmarked`,
+  keyed on `viewerKey`. No migration needed (`a373813`).
+- **Grid** — fifth column at `2xl`; `VideoGrid.Skeleton` plus `loading.tsx` for
+  both grid routes (`d5fc713`).
+
+### Two items above were wrong — verified against the code
+
+- **`prefers-reduced-motion` was never a gap.** `tokens.css:108` collapses
+  animation and transition duration globally, and all three Motion components
+  (`sticky-player`, `subscribe-overlay`, `watch-next-card`) already call
+  `useReducedMotion`. Note this before writing another accessibility spec.
+- **`VideoCard.Skeleton` already existed** (`video-card.tsx:57`). What was
+  missing was a caller — no route had a `loading.tsx` at all.
+
+Both were listed as open on the strength of a spec claiming them, not a search.
+The lesson generalises: this file is only useful if each line was checked.
