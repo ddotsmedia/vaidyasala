@@ -9,6 +9,7 @@ const COLUMNS = [
       { href: "/latest", label: "Latest" },
       { href: "/trending", label: "Trending" },
       { href: "/playlists", label: "Playlists" },
+      { href: "/watchlist", label: "Saved videos" },
     ],
   },
   {

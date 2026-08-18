@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { Bookmark, Search } from "lucide-react";
 import { Button, SubscribeCTA } from "@vaidyasala/ui";
 import { ThemeSwitcher } from "./theme-switcher";
 import { SearchController } from "../search/search-controller";
@@ -66,6 +66,13 @@ export function TopBar() {
           >
             <Search className="size-4" />
           </button>
+          {/* Icon-only: the label would push the nav past the ⌘K field on
+              narrow screens, and the destination is named on arrival. */}
+          <Button asChild variant="ghost" size="sm" aria-label="Saved videos">
+            <Link href="/watchlist">
+              <Bookmark className="size-4" />
+            </Link>
+          </Button>
           <ThemeSwitcher />
           <SubscribeCTA channelUrl={CHANNEL_URL} variant="inline" className="ml-1" />
         </nav>
