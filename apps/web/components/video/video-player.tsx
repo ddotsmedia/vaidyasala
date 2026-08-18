@@ -11,6 +11,7 @@ import {
   markBufferingStart,
   markFirstFrame,
 } from "@/lib/monitoring/video-performance";
+import { readPrefs } from "@/lib/player-prefs";
 import { usePlayer } from "./player-context";
 import { loadYouTubeApi, type YTPlayer } from "./youtube";
 
@@ -29,12 +30,21 @@ export interface VideoPlayerProps {
  */
 export function VideoPlayer({ youtubeId, videoId, title, thumbnailUrl, startSec }: VideoPlayerProps) {
   const player = usePlayer();
-  const { activated, activate, __registerControls, __update, __takePendingSeek } = player;
+  const { activated, activate, __registerControls, __registerShell, __update, __takePendingSeek } =
+    player;
   const mountRef = useRef<HTMLDivElement>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
   const ytRef = useRef<YTPlayer | null>(null);
   const fired = useRef<Set<string>>(new Set());
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastTimeRef = useRef<number | null>(null);
+
+  // The element the Fullscreen API acts on — registered once, independent of
+  // activation so `F` works before the iframe exists.
+  useEffect(() => {
+    __registerShell(shellRef.current);
+    return () => __registerShell(null);
+  }, [__registerShell]);
 
   useEffect(() => {
     if (!activated || !mountRef.current) return;
@@ -63,7 +73,24 @@ export function VideoPlayer({ youtubeId, videoId, title, thumbnailUrl, startSec 
               adjustVolume: (delta) =>
                 e.target.setVolume(Math.max(0, Math.min(100, e.target.getVolume() + delta))),
               toggleMute: () => (e.target.isMuted() ? e.target.unMute() : e.target.mute()),
+              setRate: (rate) => {
+                // setPlaybackRate is only a request; applying an unsupported
+                // rate leaves playback at 1x with no error, so check first.
+                if (e.target.getAvailablePlaybackRates().includes(rate)) {
+                  e.target.setPlaybackRate(rate);
+                }
+              },
             });
+
+            // Restore this device's saved settings before the first frame, so
+            // the viewer never hears one second at the wrong volume or speed.
+            const prefs = readPrefs();
+            e.target.setVolume(prefs.volume);
+            if (prefs.muted) e.target.mute();
+            if (e.target.getAvailablePlaybackRates().includes(prefs.rate)) {
+              e.target.setPlaybackRate(prefs.rate);
+            }
+
             __update({ isReady: true, duration: e.target.getDuration() });
             const pending = __takePendingSeek();
             if (pending) e.target.seekTo(pending.sec, true);
@@ -141,7 +168,10 @@ export function VideoPlayer({ youtubeId, videoId, title, thumbnailUrl, startSec 
   }, [activated, youtubeId, videoId, startSec, __registerControls, __update, __takePendingSeek]);
 
   return (
-    <div className="bg-surface relative aspect-video w-full overflow-hidden rounded-xl">
+    <div
+      ref={shellRef}
+      className="bg-surface relative aspect-video w-full overflow-hidden rounded-xl"
+    >
       {activated ? (
         <div ref={mountRef} className="size-full" />
       ) : (

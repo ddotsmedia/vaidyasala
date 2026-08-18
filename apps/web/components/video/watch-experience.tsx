@@ -15,6 +15,7 @@ import { LazyInView } from "./lazy-in-view";
 import { ProgressBeacon } from "./progress-beacon";
 import { CommentsSheet } from "./comments-sheet";
 import { ReactionBar } from "./reaction-bar";
+import { PlayerSettings, SHORTCUTS_EVENT } from "./player-settings";
 import { SubscribeStickyAside, SubscribeStickyBar } from "./subscribe-sticky";
 
 // Interaction/scroll-only islands — split into their own chunks and mounted only
@@ -36,17 +37,47 @@ const SubscribeOverlay = dynamic(
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
-/** Full-keyboard control per §5.5 (space/←/→/↑/↓/m), ignoring form fields. */
+/**
+ * Full-keyboard control per §5.5, following YouTube's own key map so muscle
+ * memory carries over. Typing in a field or a contenteditable is never
+ * intercepted, and modifier combinations are left to the browser.
+ */
 function useKeyboardControls(): void {
-  const { activated, isPlaying, currentTime, play, pause, seekTo, adjustVolume, toggleMute } =
-    usePlayer();
+  const {
+    activated,
+    isPlaying,
+    currentTime,
+    duration,
+    play,
+    pause,
+    seekTo,
+    adjustVolume,
+    toggleMute,
+    nudgeRate,
+    toggleTheater,
+    toggleFullscreen,
+  } = usePlayer();
+
   useEffect(() => {
     if (!activated) return;
     const onKey = (e: KeyboardEvent): void => {
       const el = e.target as HTMLElement | null;
-      if (el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) return;
+      if (el && (/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) || el.isContentEditable)) return;
+      // Ctrl/Cmd/Alt combinations belong to the browser (⌘K, ⌘F, tab switching).
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+      // Digits jump to a percentage of the video — meaningless until the
+      // duration is known, which it is not before the first onReady.
+      if (/^[0-9]$/.test(e.key) && duration > 0) {
+        e.preventDefault();
+        seekTo((Number(e.key) / 10) * duration, true);
+        return;
+      }
+
       switch (e.key) {
         case " ":
+        case "k":
+        case "K":
           e.preventDefault();
           if (isPlaying) pause();
           else play();
@@ -58,6 +89,26 @@ function useKeyboardControls(): void {
         case "ArrowRight":
           e.preventDefault();
           seekTo(currentTime + 5, true);
+          break;
+        case "j":
+        case "J":
+          e.preventDefault();
+          seekTo(Math.max(0, currentTime - 10), true);
+          break;
+        case "l":
+        case "L":
+          e.preventDefault();
+          seekTo(currentTime + 10, true);
+          break;
+        case "Home":
+          e.preventDefault();
+          seekTo(0, true);
+          break;
+        case "End":
+          if (duration > 0) {
+            e.preventDefault();
+            seekTo(duration, true);
+          }
           break;
         case "ArrowUp":
           e.preventDefault();
@@ -71,11 +122,47 @@ function useKeyboardControls(): void {
         case "M":
           toggleMute();
           break;
+        // `<` and `>` are the shifted comma/period, so match the character
+        // produced rather than the physical key.
+        case "<":
+          e.preventDefault();
+          nudgeRate(-1);
+          break;
+        case ">":
+          e.preventDefault();
+          nudgeRate(1);
+          break;
+        case "t":
+        case "T":
+          toggleTheater();
+          break;
+        case "f":
+        case "F":
+          e.preventDefault();
+          toggleFullscreen();
+          break;
+        case "?":
+          e.preventDefault();
+          window.dispatchEvent(new Event(SHORTCUTS_EVENT));
+          break;
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [activated, isPlaying, currentTime, play, pause, seekTo, adjustVolume, toggleMute]);
+  }, [
+    activated,
+    isPlaying,
+    currentTime,
+    duration,
+    play,
+    pause,
+    seekTo,
+    adjustVolume,
+    toggleMute,
+    nudgeRate,
+    toggleTheater,
+    toggleFullscreen,
+  ]);
 }
 
 /**
@@ -109,7 +196,7 @@ function useResumeSec(videoId: string): number | null {
 
 function WatchLayout({ data }: { data: WatchData }) {
   const heroRef = useRef<HTMLDivElement>(null);
-  const { activated } = usePlayer();
+  const { activated, theater } = usePlayer();
   const resumeSec = useResumeSec(data.id) ?? undefined;
   useKeyboardControls();
   const shareUrl = `${SITE_URL}/watch/${data.slug}`;
@@ -124,7 +211,14 @@ function WatchLayout({ data }: { data: WatchData }) {
 
   return (
     <>
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      {/* Theater collapses the sidebar column so the player takes the full
+          content width. The aside is not unmounted — it moves below, keeping
+          chapters reachable and the DOM order stable for screen readers. */}
+      <div
+        className={
+          theater ? "grid gap-8" : "grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]"
+        }
+      >
         <div className="flex min-w-0 flex-col gap-6">
           <div ref={heroRef} className="relative">
             <VideoPlayer
@@ -160,6 +254,8 @@ function WatchLayout({ data }: { data: WatchData }) {
             <AudioModeBar text={data.summaryMl ?? ""} />
           </div>
 
+          <PlayerSettings />
+
           <LazyInView minHeight={96}>
             <SubscribeOverlay
               channelUrl={data.channelUrl}
@@ -187,6 +283,9 @@ function WatchLayout({ data }: { data: WatchData }) {
           </LazyInView>
         </div>
 
+        {/* Stays desktop-only in both layouts: on mobile the collapsed
+            ChapterList above already covers it, and theater is a wide-screen
+            affordance. In theater the single-column grid drops it below. */}
         <aside className="hidden flex-col gap-6 lg:flex">
           <SubscribeStickyAside
             channelUrl={data.channelUrl}

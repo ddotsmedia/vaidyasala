@@ -12,6 +12,10 @@ export interface YTPlayer {
   isMuted(): boolean;
   setVolume(v: number): void;
   getVolume(): number;
+  /** Rate is a request: YouTube ignores values outside getAvailablePlaybackRates(). */
+  setPlaybackRate(rate: number): void;
+  getPlaybackRate(): number;
+  getAvailablePlaybackRates(): number[];
 }
 
 interface YTNamespace {
