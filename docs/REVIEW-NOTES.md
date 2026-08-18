@@ -171,10 +171,45 @@ Worth checking any new script against this list.
 2. Recommendations via pgvector nearest-neighbour on `Video.embedding`, rather
    than the precomputed `relatedFrom` relation.
 3. Personal viewing stats keyed on `viewerKey`.
-4. `sizes` audit on image call sites that lack it.
-5. Match highlighting in the search palette.
+
+### Verified by measurement, not assertion
+
+Claims that can only be settled against the running site — Lighthouse, Core
+Web Vitals, real-device testing, screen-reader passes, cross-browser checks —
+are **not** ticked off anywhere in this repo, because nothing has ever run on
+the server. What follows was verified statically, and each item says how.
+
+- **Thumbnail payload** — `thumbnailUrl()` prefers `maxres` (1280×720) and
+  cards render it at ~300px. Fixed with a srcset + `sizes` (`21f9518`); 13
+  tests. The byte saving is arithmetic, not a measurement.
+- **Tap targets** — `sm` was 32px, `icon` 40px, both under 44. Fixed via
+  `pointer-coarse:min-h-11`; confirmed `min-height:calc(var(--spacing) * 11)`
+  is present in the built CSS.
+- **Bypass Blocks (2.4.1, Level A)** — no `<main>`, no skip link. Fixed
+  (`6d4f3e7`); confirmed "Skip to content" is in the prerendered HTML and that
+  `focus:absolute` is emitted after `focus:not-sr-only` so the link pins
+  instead of inheriting `position:static`.
+- **Contrast** — `text-dim` on `bg` is ≈6.8:1 and on `surface-2` ≈4.6:1. Both
+  clear AA. Computed from the oklch tokens; no change made.
+- **Reduced motion** — already handled (see below).
+
+### Two items here were wrong — verified against the code
+
+- **`prefers-reduced-motion` was never a gap.** `tokens.css:108` collapses
+  animation and transition duration globally, and all three Motion components
+  (`sticky-player`, `subscribe-overlay`, `watch-next-card`) already call
+  `useReducedMotion`.
+- **`VideoCard.Skeleton` already existed** (`video-card.tsx:57`). What was
+  missing was a caller — no route had a `loading.tsx` at all.
+
+Both were listed as open on the strength of a spec claiming them, not a search.
+The lesson generalises: this file is only useful if each line was checked.
 
 ### Closed since
+
+- **Thumbnails / tap targets** (`21f9518`), **search highlighting + a latent
+  infinite loop in the highlighter** (`bd5160b`), **skip link, `<main>`, card
+  alt/duration/progress semantics** (`6d4f3e7`).
 
 - **Player** — speed (guarded by `getAvailablePlaybackRates`), theater mode,
   fullscreen via the Fullscreen API on our wrapper, and `K`/`J`/`L`/`0`–`9`/
