@@ -27,7 +27,7 @@ export function HeroSection({ video }: { video: HeroVideo }) {
           {/* Background image */}
           <Image
             src={video.thumbnailUrl}
-            alt=""
+            alt={`${video.titleMl} - Ayurvedic health education`}
             fill
             priority
             fetchPriority="high"

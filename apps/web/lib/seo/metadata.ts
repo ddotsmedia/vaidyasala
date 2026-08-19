@@ -49,6 +49,8 @@ export interface PageMetaInput {
   type?: "website" | "article" | "video.other";
   publishedTime?: string | null;
   video?: { embedUrl: string; width?: number; height?: number };
+  /** Languages this page is available in (default: ['ml', 'x-default']) */
+  languages?: string[];
 }
 
 /**
@@ -64,10 +66,18 @@ export function pageMetadata(input: PageMetaInput): Metadata {
   const images = input.ogImage
     ? [{ url: input.ogImage, width: 1200, height: 630, alt: input.title }]
     : undefined;
+
+  // hreflang tags for language alternates (§7.2)
+  const languages = input.languages ?? ["ml", "x-default"];
+  const languageAlternates: Record<string, string> = {};
+  languages.forEach((lang) => {
+    languageAlternates[lang] = absoluteUrl(input.path);
+  });
+
   return {
     title: input.title,
     description,
-    alternates: { canonical: input.path },
+    alternates: { canonical: input.path, languages: languageAlternates },
     openGraph: {
       title: input.title,
       description,

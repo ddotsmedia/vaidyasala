@@ -22,7 +22,7 @@ export function HeroFeatured({ video }: { video: HeroVideo }) {
         <div className="relative aspect-video w-full sm:aspect-[21/9]">
           <Image
             src={video.thumbnailUrl}
-            alt=""
+            alt={`${video.titleMl} - Ayurvedic health education`}
             fill
             priority
             fetchPriority="high"

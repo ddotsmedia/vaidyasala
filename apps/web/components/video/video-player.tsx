@@ -183,7 +183,7 @@ export function VideoPlayer({ youtubeId, videoId, title, thumbnailUrl, startSec 
         >
           <Image
             src={thumbnailUrl}
-            alt=""
+            alt={`${title} - Ayurvedic health education`}
             fill
             priority
             sizes="(max-width: 768px) 100vw, 720px"
