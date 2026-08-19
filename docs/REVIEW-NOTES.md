@@ -165,6 +165,45 @@ Worth checking any new script against this list.
 
 ---
 
+## 6b. SEO: what exists, and the one thing that was badly broken
+
+An SEO brief described the site as "0% optimized — no meta tags, descriptions,
+structured data, canonical, sitemap, robots, Open Graph, video schema". None of
+that was true. `lib/seo/` has `pageMetadata` (canonical + OG + Twitter, player
+card on video pages) and JSON-LD builders for Organization, WebSite +
+SearchAction, BreadcrumbList, VideoObject (+Clip, InteractionCounter), FAQPage,
+MedicalWebPage, Article, CollectionPage and MedicalCondition — all tested.
+`app/robots.ts` and a four-shard `app/sitemap.ts` with the Google video
+extension both exist. **Before acting on an SEO audit, check it against
+`lib/seo/`** — building the proposed `lib/schema.ts` + `public/robots.txt` +
+`app/api/sitemap/*` would have created a second, conflicting implementation.
+
+What was actually wrong (`f16c2b5`):
+
+- **`og:image` pointed at `/api/og`, which returns `image/svg+xml`.** No major
+  crawler renders an SVG `og:image`, so all 503 video pages shared with a blank
+  card. Now the YouTube thumbnail — a real 1280×720 JPEG. The same URL was the
+  video sitemap's `thumbnail_loc` fallback, where Google would reject it too.
+- **The homepage had no `metadata` export at all**, inheriting the bare title
+  "Vaidyasala" with no canonical or OG. Eight more pages were title-only.
+- **Descriptions were sliced at 200 chars mid-word**; Google renders ~160.
+
+Still open: **brand pages emit no `og:image`** — the only asset in `public/` is
+`icon.svg`, also SVG. Needs one 1200×630 PNG; inventing a brand card is a
+design call, not an engineering one.
+
+**hreflang is not applicable and was not built.** It annotates the same content
+at different URLs; Vaidyasala serves one bilingual URL per video. Adding
+`/ml/*` and `/en/*` would manufacture duplicate content and fork 503 canonicals.
+The real ML/EN gap is `titleEn` being null — a §8.2 enrichment run, not markup.
+
+> ⚠ **Domain is unresolved.** The brief says `vadhyasala.com`, VARIABLES.md says
+> `vaidhyasala.com`, the repo namespace is `vaidyasala`. Everything derives from
+> `NEXT_PUBLIC_SITE_URL`, so it is one deploy value — but a canonical pointing
+> at a domain that does not resolve deindexes the site. Confirm before deploy.
+
+---
+
 ## 7. Genuinely open work
 
 1. **Run the deployment.** Everything else is invisible until then.
