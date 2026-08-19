@@ -7,6 +7,7 @@ model Video {
   status         VideoStatus  @default(INGESTING)
   titleMl        String
   titleEn        String?
+  titleEnAuto    String?       // Auto-generated from YouTube API
   description    String?      @db.Text
   durationSec    Int
   publishedAt    DateTime?

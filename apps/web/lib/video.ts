@@ -180,3 +180,27 @@ export async function publishedSlugs(limit = 500): Promise<string[]> {
   });
   return rows.map((r) => r.slug);
 }
+
+/**
+ * Get the best available English title for a video.
+ * Prefers: titleEn > titleEnAuto > titleMl
+ *
+ * This ensures every video has a title in the current display context,
+ * falling back to Malayalam if English metadata is not available.
+ */
+export function getVideoTitle(video: {
+  titleMl: string;
+  titleEn?: string | null;
+  titleEnAuto?: string | null;
+}): string {
+  return video.titleEn || video.titleEnAuto || video.titleMl;
+}
+
+/**
+ * Extract keywords from a comma-separated keyword string.
+ * Returns empty array if no keywords present.
+ */
+export function getVideoKeywords(video: { keywords?: string | null }): string[] {
+  if (!video.keywords) return [];
+  return video.keywords.split(", ").filter((kw) => kw.trim().length > 0);
+}

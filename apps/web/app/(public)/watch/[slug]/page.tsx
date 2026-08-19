@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getVideoBySlug, publishedSlugs } from "@/lib/video";
+import { getVideoBySlug, publishedSlugs, getVideoTitle } from "@/lib/video";
 import { safeStaticParams } from "@/lib/static-params";
 import { WatchExperience } from "@/components/video/watch-experience";
 import { MedicalDisclaimer } from "@/components/seo/medical-disclaimer";
@@ -34,9 +34,13 @@ export async function generateMetadata({
   const { slug } = await params;
   const video = await getVideoBySlug(slug);
   if (!video) return { title: "Not found" };
+
+  // Use English title for SEO (titleEn > titleEnAuto > titleMl)
+  const seoTitle = getVideoTitle(video);
+
   return pageMetadata({
-    title: video.titleMl,
-    description: video.summaryMl ?? video.description,
+    title: seoTitle,
+    description: video.summaryEn ?? video.summaryMl ?? video.description,
     path: `/watch/${video.slug}`,
     // The YouTube thumbnail, not /api/og — that route serves SVG, which no
     // social crawler renders, so the card came through with no image at all.
