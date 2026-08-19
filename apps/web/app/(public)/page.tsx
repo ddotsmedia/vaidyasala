@@ -10,7 +10,7 @@ import {
   getLatestArticles,
 } from "@/lib/feeds";
 import { NewsletterForm } from "@/components/home/newsletter-form";
-import { HeroFeatured } from "@/components/home/hero-featured";
+import { HeroSection } from "@/components/HeroSection";
 import { RecommendedIsland, RailSkeleton } from "@/components/home/islands";
 import { ContinueWatchingClient } from "@/components/home/continue-client";
 import { VideoCarousel } from "@/components/video-carousel";
@@ -54,7 +54,7 @@ export default async function HomePage() {
       <JsonLd data={[websiteLd(), organizationLd()]} />
       {/* Featured hero */}
       {featured ? (
-        <HeroFeatured video={featured} />
+        <HeroSection video={featured} />
       ) : (
         <section className="py-16">
           <h1 className="text-2xl font-semibold">No videos yet</h1>
