@@ -7,7 +7,6 @@ import { MedicalDisclaimer } from "@/components/seo/medical-disclaimer";
 import {
   JsonLd,
   pageMetadata,
-  ogImageUrl,
   videoObjectLd,
   faqPageLd,
   medicalWebPageLd,
@@ -39,7 +38,10 @@ export async function generateMetadata({
     title: video.titleMl,
     description: video.summaryMl ?? video.description,
     path: `/watch/${video.slug}`,
-    ogImage: ogImageUrl(video.slug),
+    // The YouTube thumbnail, not /api/og — that route serves SVG, which no
+    // social crawler renders, so the card came through with no image at all.
+    // This is a real 1280x720 JPEG and shows the actual frame.
+    ogImage: video.thumbnailUrl,
     type: "video.other",
     publishedTime: video.publishedAt,
     video: { embedUrl: `https://www.youtube-nocookie.com/embed/${video.youtubeId}` },

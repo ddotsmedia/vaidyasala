@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { SubscribeCTA } from "@vaidyasala/ui";
 
-export const metadata: Metadata = { title: "Subscribe" };
+export const metadata: Metadata = pageMetadata({
+  title: "Subscribe on YouTube",
+  description:
+    "Follow the Vaidyasala channel for new Malayalam health and Ayurveda videos as they are published.",
+  path: "/subscribe",
+});
 
 const CHANNEL_URL = "https://www.youtube.com/@vaidyasala?sub_confirmation=1";
 

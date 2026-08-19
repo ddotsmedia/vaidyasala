@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = { title: "Privacy" };
+export const metadata: Metadata = pageMetadata({
+  title: "Privacy policy",
+  description:
+    "What Vaidyasala stores, what it does not, and how viewing data is kept without requiring an account.",
+  path: "/privacy",
+});
 
 export default function PrivacyPage() {
   return (

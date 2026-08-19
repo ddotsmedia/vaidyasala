@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { getLatest } from "@/lib/feeds";
 import { VideoGrid } from "@/components/home/video-grid";
 
-export const metadata: Metadata = { title: "Latest" };
+export const metadata: Metadata = pageMetadata({
+  title: "Latest videos",
+  description:
+    "The newest Malayalam health and Ayurveda videos, with AI summaries, chapters and full transcripts for each one.",
+  path: "/latest",
+});
 export const revalidate = 120;
 
 export default async function LatestPage() {

@@ -1,6 +1,14 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = { title: "About" };
+export const metadata: Metadata = pageMetadata({
+  // Not "About Vaidyasala" — the title template appends "· Vaidyasala", so
+  // the brand would appear twice in the SERP.
+  title: "About & editorial policy",
+  description:
+    "Who reviews the health information on Vaidyasala, where the videos come from, and how the AI summaries are produced.",
+  path: "/about",
+});
 
 /** Trust page — E-E-A-T signal (§1.1, §7.3). */
 export default function AboutPage() {

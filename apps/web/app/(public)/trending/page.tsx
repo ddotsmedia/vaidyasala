@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { getTrending } from "@/lib/feeds";
 import { VideoGrid } from "@/components/home/video-grid";
 
-export const metadata: Metadata = { title: "Trending" };
+export const metadata: Metadata = pageMetadata({
+  title: "Trending this week",
+  description:
+    "The most-watched Malayalam health videos of the past seven days, ranked by how far viewers actually watch.",
+  path: "/trending",
+});
 export const revalidate = 120;
 
 /** Engagement-ranked over the last 7 days (§1.1). */

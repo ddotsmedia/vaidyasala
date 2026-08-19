@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { prisma } from "@vaidyasala/db";
-import { absoluteUrl, ogImageUrl } from "@/lib/seo";
+import { absoluteUrl } from "@/lib/seo";
+import { thumbnailUrl } from "@/lib/video";
 
 export const revalidate = 3600;
 
@@ -54,8 +55,10 @@ export default async function sitemap(props: {
       take: 5000,
     });
     return videos.map((v) => {
-      const thumbs = (v.thumbnails ?? {}) as Record<string, string>;
-      const thumb = thumbs.maxres ?? thumbs.hq ?? thumbs.default ?? ogImageUrl(v.slug);
+      // thumbnail_loc must be a real raster image; the old fallback was
+      // /api/og, which serves SVG and would have been rejected. thumbnailUrl()
+      // walks the same stored keys and ends at a guaranteed i.ytimg JPEG.
+      const thumb = thumbnailUrl(v.youtubeId, v.thumbnails);
       return {
         url: absoluteUrl(`/watch/${v.slug}`),
         lastModified: v.updatedAt,

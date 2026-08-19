@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = { title: "Terms" };
+export const metadata: Metadata = pageMetadata({
+  title: "Terms of use",
+  description:
+    "The terms for using Vaidyasala, including the medical disclaimer that applies to every video on the site.",
+  path: "/terms",
+});
 
 export default function TermsPage() {
   return (

@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import type { Route } from "next";
+import type { Metadata, Route } from "next";
 import {
   getFeaturedHero,
   getTrending,
@@ -16,9 +16,25 @@ import { ContinueWatchingClient } from "@/components/home/continue-client";
 import { VideoCarousel } from "@/components/video-carousel";
 import { CategoryGrid } from "@/components/category-grid";
 import { SubscribeCTA } from "@vaidyasala/ui";
-import { JsonLd, websiteLd, organizationLd } from "@/lib/seo";
+import { JsonLd, websiteLd, organizationLd, pageMetadata } from "@/lib/seo";
 
 export const revalidate = 1800;
+
+/**
+ * The homepage had no metadata export at all, so it inherited the root
+ * default — the bare word "Vaidyasala", no canonical and no OG image — on the
+ * single most linked-to page of the site. `title.absolute` bypasses the
+ * "%s · Vaidyasala" template, which would otherwise duplicate the brand.
+ */
+export const metadata: Metadata = {
+  ...pageMetadata({
+    title: "Vaidyasala — Malayalam health videos, searchable by question",
+    description:
+      "Search 500+ Malayalam Ayurveda and health videos by what you actually want to know. AI summaries, chapters and transcripts for every video.",
+    path: "/",
+  }),
+  title: { absolute: "Vaidyasala — Malayalam health videos, searchable by question" },
+};
 
 const CHANNEL_URL = "https://www.youtube.com/@vaidyasala?sub_confirmation=1";
 

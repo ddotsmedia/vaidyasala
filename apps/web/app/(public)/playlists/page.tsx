@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { listPlaylists } from "@/lib/feeds";
 
-export const metadata: Metadata = { title: "Playlists" };
+export const metadata: Metadata = pageMetadata({
+  title: "Playlists",
+  description:
+    "Curated sequences of Malayalam health videos, ordered so each one builds on the last.",
+  path: "/playlists",
+});
 export const revalidate = 600;
 
 export default async function PlaylistsPage() {

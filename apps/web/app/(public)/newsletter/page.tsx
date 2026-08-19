@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { NewsletterForm } from "@/components/home/newsletter-form";
 
-export const metadata: Metadata = { title: "Newsletter" };
+export const metadata: Metadata = pageMetadata({
+  title: "Weekly newsletter",
+  description:
+    "A weekly Malayalam digest of new health videos and the questions they answer. One email, no spam.",
+  path: "/newsletter",
+});
 
 export default async function NewsletterPage({
   searchParams,
