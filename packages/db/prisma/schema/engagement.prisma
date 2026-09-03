@@ -93,3 +93,52 @@ model NewsletterIssue {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 }
+
+// ───────────────────────── AYURVEDA FEATURES (§2) ─────────────────────────
+/// Dosha assessment results: vata/pitta/kapha scores and dominant dosha.
+model DoshaAssessment {
+  id             String   @id @default(cuid())
+  userId         String?  @unique
+  vata           Int      @default(0)
+  pitta          Int      @default(0)
+  kapha          Int      @default(0)
+  dominantDosha  String?  // "vata" | "pitta" | "kapha" | "dual" (for ties)
+  submittedAt    DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([userId])
+}
+
+/// Daily wellness tracking: energy, digestion, mood, sleep quality.
+model WellnessEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  date      DateTime @db.Date
+  energy    Int?     // 1-10
+  digestion Int?     // 1-10
+  mood      Int?     // 1-10
+  sleep     Int?     // 1-10
+  notes     String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, date])
+  @@index([userId, date])
+  @@index([date])
+}
+
+/// Historical dosha tracking: seasonal variations and trends.
+model DoshaHistory {
+  id            String   @id @default(cuid())
+  userId        String
+  doshaDate     DateTime @db.Date
+  season        String?  // "spring" | "summer" | "autumn" | "winter"
+  vata          Int?
+  pitta         Int?
+  kapha         Int?
+  dominantDosha String?
+  createdAt     DateTime @default(now())
+
+  @@unique([userId, doshaDate])
+  @@index([userId, doshaDate])
+}
