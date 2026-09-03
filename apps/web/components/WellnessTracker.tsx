@@ -67,11 +67,11 @@ export function WellnessTracker() {
   const renderSlider = (
     label: string,
     name: "energy" | "digestion" | "mood" | "sleep",
-    value: number | undefined
+    value: number | null | undefined
   ) => (
     <div className="space-y-2">
       <label className="block text-sm font-medium text-gray-900">
-        {label} {value !== undefined && <span className="text-vaid-red">({value}/10)</span>}
+        {label} {value && <span className="text-vaid-red">({value}/10)</span>}
       </label>
       <input
         type="range"

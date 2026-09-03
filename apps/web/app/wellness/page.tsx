@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/auth";
+import { getAuthContext } from "@/lib/authz";
 import { WellnessTracker } from "@/components/WellnessTracker";
 import { WellnessChart } from "@/components/WellnessChart";
 import { DoshaRecommendations } from "@/components/DoshaRecommendations";
@@ -13,16 +13,16 @@ export const metadata: Metadata = {
 };
 
 export default async function WellnessPage() {
-  const session = await getSession();
+  const authContext = await getAuthContext();
 
   // Require authentication
-  if (!session?.user?.id) {
+  if (!authContext?.userId) {
     redirect("/login");
   }
 
   // Fetch user's dosha assessment
   const doshaAssessment = await prisma.doshaAssessment.findUnique({
-    where: { userId: session.user.id },
+    where: { userId: authContext.userId },
   });
 
   return (

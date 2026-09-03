@@ -18,11 +18,7 @@ interface QuizResult {
   description: string;
 }
 
-interface DoshaQuizProps {
-  onComplete?: (result: QuizResult) => Promise<void>;
-}
-
-export function DoshaQuiz({ onComplete }: DoshaQuizProps) {
+export function DoshaQuiz() {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [scores, setScores] = useState<DoshaScores>({ vata: 0, pitta: 0, kapha: 0 });
   const [completed, setCompleted] = useState(false);
@@ -66,11 +62,21 @@ export function DoshaQuiz({ onComplete }: DoshaQuizProps) {
   );
 
   const handleSubmit = async () => {
-    if (!result || !onComplete) return;
+    if (!result) return;
 
     setSubmitting(true);
     try {
-      await onComplete(result);
+      const response = await fetch("/api/dosha", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(result),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save assessment");
+      }
+
+      // Success - stay on results page or redirect
     } finally {
       setSubmitting(false);
     }
@@ -83,7 +89,7 @@ export function DoshaQuiz({ onComplete }: DoshaQuizProps) {
           <h2 className="text-3xl font-bold text-vaid-red">Your Dosha</h2>
           <div className="mt-8 rounded-2xl border-2 border-vaid-red bg-red-50 p-8">
             <div className="text-5xl font-bold capitalize text-vaid-red">
-              {result.dominantDosha}
+              {result.dominantDosha || "Unknown"}
             </div>
             <p className="mt-4 text-lg text-gray-700">{result.description}</p>
           </div>
@@ -158,6 +164,10 @@ export function DoshaQuiz({ onComplete }: DoshaQuizProps) {
         </div>
       </div>
     );
+  }
+
+  if (!question) {
+    return <div className="text-center text-gray-500">Loading quiz...</div>;
   }
 
   return (

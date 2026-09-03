@@ -19,19 +19,7 @@ export default function QuizPage() {
             </p>
           </div>
 
-          <DoshaQuiz
-            onComplete={async (result) => {
-              const response = await fetch("/api/dosha", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(result),
-              });
-
-              if (!response.ok) {
-                throw new Error("Failed to save assessment");
-              }
-            }}
-          />
+          <DoshaQuiz />
         </div>
       </main>
     </div>

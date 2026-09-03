@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@vaidyasala/db";
-import { getSession } from "@/lib/auth";
+import { getAuthContext } from "@/lib/authz";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const session = await getSession();
+    const authContext = await getAuthContext();
 
-    if (!session?.user?.id) {
+    if (!authContext?.userId) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const entry = await prisma.wellnessEntry.upsert({
       where: {
         userId_date: {
-          userId: session.user.id,
+          userId: authContext.userId,
           date: new Date(date),
         },
       },
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         updatedAt: new Date(),
       },
       create: {
-        userId: session.user.id,
+        userId: authContext.userId,
         date: new Date(date),
         energy,
         digestion,
@@ -58,11 +58,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 }
 
-export async function GET(request: NextRequest): Promise<NextResponse> {
+export async function GET(): Promise<NextResponse> {
   try {
-    const session = await getSession();
+    const authContext = await getAuthContext();
 
-    if (!session?.user?.id) {
+    if (!authContext?.userId) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
@@ -72,7 +72,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     const entries = await prisma.wellnessEntry.findMany({
       where: {
-        userId: session.user.id,
+        userId: authContext.userId,
         date: {
           gte: thirtyDaysAgo,
         },
@@ -81,19 +81,24 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     });
 
     // Calculate statistics
+    const energyEntries = entries.filter((e: typeof entries[0]) => e.energy !== null);
+    const digestionEntries = entries.filter((e: typeof entries[0]) => e.digestion !== null);
+    const moodEntries = entries.filter((e: typeof entries[0]) => e.mood !== null);
+    const sleepEntries = entries.filter((e: typeof entries[0]) => e.sleep !== null);
+
     const stats = {
       totalEntries: entries.length,
-      avgEnergy: entries.filter((e) => e.energy).length
-        ? Math.round(entries.filter((e) => e.energy).reduce((sum, e) => sum + (e.energy || 0), 0) / entries.filter((e) => e.energy).length)
+      avgEnergy: energyEntries.length
+        ? Math.round(energyEntries.reduce((sum: number, e: typeof entries[0]) => sum + (e.energy || 0), 0) / energyEntries.length)
         : 0,
-      avgDigestion: entries.filter((e) => e.digestion).length
-        ? Math.round(entries.filter((e) => e.digestion).reduce((sum, e) => sum + (e.digestion || 0), 0) / entries.filter((e) => e.digestion).length)
+      avgDigestion: digestionEntries.length
+        ? Math.round(digestionEntries.reduce((sum: number, e: typeof entries[0]) => sum + (e.digestion || 0), 0) / digestionEntries.length)
         : 0,
-      avgMood: entries.filter((e) => e.mood).length
-        ? Math.round(entries.filter((e) => e.mood).reduce((sum, e) => sum + (e.mood || 0), 0) / entries.filter((e) => e.mood).length)
+      avgMood: moodEntries.length
+        ? Math.round(moodEntries.reduce((sum: number, e: typeof entries[0]) => sum + (e.mood || 0), 0) / moodEntries.length)
         : 0,
-      avgSleep: entries.filter((e) => e.sleep).length
-        ? Math.round(entries.filter((e) => e.sleep).reduce((sum, e) => sum + (e.sleep || 0), 0) / entries.filter((e) => e.sleep).length)
+      avgSleep: sleepEntries.length
+        ? Math.round(sleepEntries.reduce((sum: number, e: typeof entries[0]) => sum + (e.sleep || 0), 0) / sleepEntries.length)
         : 0,
     };
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@vaidyasala/db";
-import { getSession } from "@/lib/auth";
+import { getAuthContext } from "@/lib/authz";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
@@ -14,14 +14,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // BLOCKED: Get session to associate with user
-    // For now, allow anonymous submissions
-    // In production: get user ID from session
-    const session = await getSession();
+    // Get session to associate with user (optional)
+    const authContext = await getAuthContext();
 
     // Save or update assessment
     const assessment = await prisma.doshaAssessment.upsert({
-      where: { userId: session?.user?.id || undefined },
+      where: { userId: authContext?.userId || undefined },
       update: {
         vata: scores.vata,
         pitta: scores.pitta,
@@ -30,7 +28,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         updatedAt: new Date(),
       },
       create: {
-        userId: session?.user?.id || undefined,
+        userId: authContext?.userId || undefined,
         vata: scores.vata,
         pitta: scores.pitta,
         kapha: scores.kapha,
@@ -39,15 +37,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     });
 
     // Also save to history for tracking trends
-    if (session?.user?.id) {
-      const today = new Date().toISOString().split("T")[0];
+    if (authContext?.userId) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Normalize to midnight
       const currentSeason = getCurrentSeason();
 
       await prisma.doshaHistory.upsert({
         where: {
           userId_doshaDate: {
-            userId: session.user.id,
-            doshaDate: new Date(today),
+            userId: authContext.userId,
+            doshaDate: today,
           },
         },
         update: {
@@ -58,8 +57,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           season: currentSeason,
         },
         create: {
-          userId: session.user.id,
-          doshaDate: new Date(today),
+          userId: authContext.userId,
+          doshaDate: today,
           vata: scores.vata,
           pitta: scores.pitta,
           kapha: scores.kapha,
@@ -100,14 +99,14 @@ function getCurrentSeason(): string {
  */
 export async function GET(): Promise<NextResponse> {
   try {
-    const session = await getSession();
+    const authContext = await getAuthContext();
 
-    if (!session?.user?.id) {
+    if (!authContext?.userId) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
     const assessment = await prisma.doshaAssessment.findUnique({
-      where: { userId: session.user.id },
+      where: { userId: authContext.userId },
     });
 
     if (!assessment) {
