@@ -6,6 +6,7 @@ import { RelatedRail, VideoCard, ShareSheet, Button } from "@vaidyasala/ui";
 import { CARD_SIZES } from "@/lib/thumbnail";
 import type { WatchData } from "@/lib/video";
 import { PlayerProvider, usePlayer } from "./player-context";
+import { ShareButtons } from "@/components/ShareButtons";
 import { VideoPlayer } from "./video-player";
 import { SummaryCard } from "./summary-card";
 import { KeyTakeaways } from "./key-takeaways";
@@ -247,12 +248,17 @@ function WatchLayout({ data }: { data: WatchData }) {
             viewCount={data.viewCount}
           />
 
-          <div className="flex flex-wrap items-center gap-3">
-            <ShareSheet url={shareUrl} title={data.titleMl} utmSource="watch">
-              <Button variant="outline">Share</Button>
-            </ShareSheet>
-            <ReactionBar videoId={data.id} />
-            <AudioModeBar text={data.summaryMl ?? ""} />
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <ShareSheet url={shareUrl} title={data.titleMl} utmSource="watch">
+                <Button variant="outline">Share</Button>
+              </ShareSheet>
+              <ReactionBar videoId={data.id} />
+              <AudioModeBar text={data.summaryMl ?? ""} />
+            </div>
+            <div className="mt-2">
+              <ShareButtons url={shareUrl} title={data.titleMl} text={data.summaryMl ?? ""} />
+            </div>
           </div>
 
           <PlayerSettings />

@@ -1,0 +1,381 @@
+CLAUDE CODE PROMPT: VAIDYASALA AUTO-SUBTITLES
+=========================================================
+SESSION RULES - NON-NEGOTIABLE
+✓ NO questions - full automation
+✓ Additive migrations only
+✓ Build → Commit → Push → Deploy
+✓ Token budget: 35,000 max
+✓ CRITICAL: rm -rf apps/web/.next before VPS build
+
+=========================================================
+OBJECTIVE
+=========================================================
+Auto-generate subtitles for 503 videos using Deepgram
+Impact: +50% SEO (indexed text), +25% accessibility
+
+TARGET COMPLETION: 4-6 hours (mostly API calls, not coding)
+ESTIMATED TOKENS: 20,000-30,000
+
+=========================================================
+TASK 1: SETUP DEEPGRAM & DATABASE (15 min)
+=========================================================
+Sign up: deepgram.com
+- Free tier: 600 minutes/month (enough for ~10 videos)
+- Paid: $0.0043/minute (~$2.16 for 503 videos)
+
+Get API key: Copy to .env
+
+Update: apps/web/.env
+DEEPGRAM_API_KEY=your_api_key_here
+
+Migration: apps/web/prisma/migrations/[timestamp]_add_subtitles/migration.sql
+```sql
+CREATE TABLE IF NOT EXISTS "Subtitle" (
+  "id" TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
+  "videoId" TEXT NOT NULL UNIQUE,
+  "language" VARCHAR(10) DEFAULT 'en',
+  "vtt" TEXT,
+  "json" JSONB,
+  "status" VARCHAR(20) DEFAULT 'pending',
+  "transcribedAt" TIMESTAMP,
+  "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS "idx_subtitle_video" ON "Subtitle"("videoId");
+CREATE INDEX IF NOT EXISTS "idx_subtitle_status" ON "Subtitle"("status");
+```
+
+Update: apps/web/prisma/schema.prisma
+Add model: Subtitle
+
+Run:
+pnpm prisma migrate dev --name add_subtitles
+
+Status: [ ] Done
+
+=========================================================
+TASK 2: DEEPGRAM API CLIENT (20 min)
+=========================================================
+Create: apps/web/lib/deepgram.ts
+```ts
+import { Deepgram } from "@deepgram/sdk";
+
+const deepgram = new Deepgram(process.env.DEEPGRAM_API_KEY);
+
+export async function transcribeYoutubeVideo(youtubeId: string) {
+  const videoUrl = `https://www.youtube.com/watch?v=${youtubeId}`;
+
+  const response = await deepgram.listen.preRecorded.transcribeUrl(
+    { url: videoUrl },
+    {
+      model: "nova-3",
+      language: "en",
+      smart_format: true,
+      diarize: true,
+      punctuate: true,
+      paragraphs: true,
+    }
+  );
+
+  return {
+    transcript: response.results.channels[0].alternatives[0].transcript,
+    confidence: response.results.channels[0].alternatives[0].confidence,
+    words: response.results.channels[0].alternatives[0].words,
+    paragraphs: response.results.channels[0].alternatives[0].paragraphs,
+  };
+}
+
+export function generateVTT(words: any[]) {
+  let vtt = "WEBVTT\n\n";
+
+  words.forEach((word, i) => {
+    const start = formatTime(word.start);
+    const end = formatTime(word.end);
+    vtt += `${start} --> ${end}\n${word.punctuated_word}\n\n`;
+  });
+
+  return vtt;
+}
+
+function formatTime(seconds: number) {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  const ms = Math.floor((seconds % 1) * 1000);
+  return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}.${ms.toString().padStart(3, "0")}`;
+}
+```
+
+Status: [ ] Done
+
+=========================================================
+TASK 3: SUBTITLE API ENDPOINT (25 min)
+=========================================================
+Create: apps/web/app/api/subtitles/[videoId]/route.ts
+- GET: Return subtitle if exists
+  Response: { vtt, json, language, status }
+- POST: Start transcription job
+  Input: { videoId }
+  Check if subtitle exists
+  If not: Start Deepgram job → save to DB with status: 'processing'
+  Response: { status: 'processing', videoId }
+
+Create: apps/web/app/api/subtitles/process/route.ts (batch job)
+- POST: Process all pending subtitles
+- Query: WHERE status = 'pending'
+- For each video:
+  - Call transcribeYoutubeVideo()
+  - Generate VTT file
+  - Save to DB with status: 'completed'
+  - Update Video.subtitleId
+- Return: { processed: count, errors: [] }
+
+Optional: Add to docker-compose (daily cron):
+```yaml
+  subtitle-worker:
+    image: ghcr.io/ddotsmedia/vaidyasala/worker:latest
+    command: node -e "
+      setInterval(async () => {
+        await fetch('http://web:3000/api/subtitles/process', { method: 'POST' });
+      }, 86400000);
+    "
+```
+
+Status: [ ] Done
+
+=========================================================
+TASK 4: DISPLAY SUBTITLES IN PLYR (20 min)
+=========================================================
+Update: apps/web/components/PlyrPlayer.tsx
+- Fetch subtitles from API: GET /api/subtitles/{videoId}
+- If exists: Add to Plyr tracks
+```tsx
+const subtitle = await fetch(`/api/subtitles/${youtubeId}`).then(r => r.json());
+
+const options = {
+  tracks: [
+    {
+      kind: 'captions',
+      src: `data:text/vtt;base64,${btoa(subtitle.vtt)}`,
+      srclang: 'en',
+      label: 'English'
+    }
+  ]
+};
+
+new Plyr(playerRef.current, options);
+```
+
+Status: [ ] Done
+
+=========================================================
+TASK 5: SCRIPT TO PROCESS ALL 503 VIDEOS (30 min)
+=========================================================
+Create: apps/web/scripts/process-all-subtitles.ts
+```ts
+import { PrismaClient } from "@prisma/client";
+import { transcribeYoutubeVideo, generateVTT } from "../lib/deepgram";
+
+const prisma = new PrismaClient();
+
+async function processAllSubtitles() {
+  const videos = await prisma.video.findMany({
+    where: { status: "published" },
+  });
+
+  console.log(`Processing ${videos.length} videos...`);
+
+  for (const video of videos) {
+    try {
+      console.log(`[${videos.indexOf(video) + 1}/${videos.length}] Processing ${video.titleMl}...`);
+
+      const transcription = await transcribeYoutubeVideo(video.youtubeId);
+      const vtt = generateVTT(transcription.words);
+
+      await prisma.subtitle.upsert({
+        where: { videoId: video.id },
+        update: {
+          vtt,
+          json: { transcript: transcription.transcript, words: transcription.words },
+          status: "completed",
+          transcribedAt: new Date(),
+        },
+        create: {
+          videoId: video.id,
+          vtt,
+          json: { transcript: transcription.transcript, words: transcription.words },
+          status: "completed",
+          transcribedAt: new Date(),
+        },
+      });
+
+      // Rate limit: 1 video per 10 seconds
+      await new Promise(r => setTimeout(r, 10000));
+    } catch (error) {
+      console.error(`❌ Failed: ${video.titleMl}`, error);
+    }
+  }
+
+  console.log("✅ Done!");
+  await prisma.$disconnect();
+}
+
+processAllSubtitles();
+```
+
+Run:
+npx ts-node apps/web/scripts/process-all-subtitles.ts
+
+Or in Docker (production):
+docker exec vaidyasala-web npx ts-node apps/web/scripts/process-all-subtitles.ts
+
+Note: Will take ~80+ hours due to rate limiting
+Recommendation: Run on background server, monitor progress
+
+Status: [ ] Done
+
+=========================================================
+TASK 6: SEARCH INTEGRATION (20 min)
+=========================================================
+Update: apps/web/lib/search.ts (Meilisearch index)
+- When indexing videos, include subtitle text:
+```ts
+const searchIndex = {
+  id: video.id,
+  title: video.titleMl,
+  description: video.descriptionMl,
+  subtitle: subtitle?.transcript || "",  // NEW
+  creator: video.creator.name,
+};
+```
+
+This enables:
+✓ Search within video transcripts
+✓ Full-text search on spoken content
+✓ Better SEO (Google indexes transcript)
+
+Status: [ ] Done
+
+=========================================================
+TASK 7: VERIFICATION SCRIPT (15 min)
+=========================================================
+Create: apps/web/scripts/verify-subtitles.ts
+```ts
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
+
+async function verifySubtitles() {
+  const videos = await prisma.video.findMany({
+    where: { status: "published" },
+    include: { subtitle: true }
+  });
+
+  const withSubtitles = videos.filter(v => v.subtitle).length;
+  const total = videos.length;
+  const percent = ((withSubtitles / total) * 100).toFixed(1);
+
+  console.log(`
+  📊 SUBTITLE STATS
+  ═════════════════
+  Total videos: ${total}
+  With subtitles: ${withSubtitles}
+  Coverage: ${percent}%
+
+  Status breakdown:
+  - Completed: ${await prisma.subtitle.count({ where: { status: "completed" } })}
+  - Processing: ${await prisma.subtitle.count({ where: { status: "processing" } })}
+  - Failed: ${await prisma.subtitle.count({ where: { status: "failed" } })}
+  `);
+
+  await prisma.$disconnect();
+}
+
+verifySubtitles();
+```
+
+Run:
+npx ts-node apps/web/scripts/verify-subtitles.ts
+
+Status: [ ] Done
+
+=========================================================
+TASK 8: BUILD & DEPLOY (10 min)
+=========================================================
+pnpm build
+pnpm dev
+
+Test:
+✓ Video page loads
+✓ Plyr player shows subtitle track
+✓ Subtitles toggle on/off
+✓ Search works on transcript text
+✓ No TypeScript errors
+
+Deploy:
+git add .
+git commit -m "Feat: Auto-subtitles with Deepgram integration"
+git push origin main
+
+VPS:
+cd /opt/vaidhyasala/infra/docker
+rm -rf /opt/vaidhyasala/apps/web/.next
+docker compose -p vaidyasala -f compose.prod.yml up -d
+
+Status: [ ] Done
+
+=========================================================
+TASK 9: START SUBTITLE PROCESSING (BACKGROUND) (1-2 hours)
+=========================================================
+Option A: One-time batch (recommended first)
+docker exec vaidyasala-web npx ts-node apps/web/scripts/process-all-subtitles.ts &
+
+Monitor:
+docker logs vaidyasala-web | grep "Processing"
+
+Option B: Daily scheduled job (add to compose.prod.yml)
+```yaml
+  subtitle-processor:
+    image: node:22-slim
+    entrypoint: node -e "
+      setInterval(async () => {
+        await fetch('http://web:3000/api/subtitles/process', { method: 'POST' })
+        .catch(e => console.error(e));
+      }, 86400000);
+    "
+    depends_on: [web]
+    networks: [vaidyasala-net]
+```
+
+Status: [ ] Done
+
+=========================================================
+COMPLETION CHECKLIST
+=========================================================
+✓ Deepgram API integrated
+✓ Subtitle database table created
+✓ Auto-transcribe endpoint available
+✓ Subtitles display in Plyr player
+✓ 503 videos queued for transcription
+✓ Search includes transcript text
+✓ Batch processing script running
+✓ Verify script tracking progress
+
+EXPECTED IMPACT:
+- 🔍 SEO: +50% (Google indexes transcript)
+- ♿ Accessibility: WCAG AA compliance
+- 🌍 Reach: +30% (searchable content)
+- 📊 Data: 50,000+ searchable words per video
+
+COST:
+- Free tier: 600 min/month (covers ~10 videos)
+- Full coverage: ~$2.16 for all 503 videos
+- Monthly: $0 if < 600 min, ~$2-5 for new videos
+
+TIMELINE:
+- Batch process: 80+ hours (runs in background)
+- Verify every 24h: npx ts-node verify-subtitles.ts
+- Production ready when coverage > 80%
+
+ESTIMATED TOKENS USED: 18,000-28,000
+ACTUAL TOKENS USED: _______

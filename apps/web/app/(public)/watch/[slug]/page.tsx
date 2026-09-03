@@ -12,6 +12,7 @@ import {
   medicalWebPageLd,
   breadcrumbLd,
 } from "@/lib/seo";
+import { generateVideoMetadata } from "@/lib/metadata";
 
 // ISR: statically generated, revalidated on publish (§11) + full JSON-LD/OG (§7).
 // 1h background window; publish/edit still busts it immediately via revalidateTag,
@@ -37,14 +38,26 @@ export async function generateMetadata({
 
   // Use English title for SEO (titleEn > titleEnAuto > titleMl)
   const seoTitle = getVideoTitle(video);
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
+  // Generate video metadata with comprehensive Open Graph tags
+  const videoMeta = generateVideoMetadata(
+    {
+      slug: video.slug,
+      titleEn: video.titleEn || seoTitle,
+      titleMl: video.titleMl,
+      description: video.summaryEn ?? video.summaryMl ?? video.description,
+      thumbnailUrl: video.thumbnailUrl,
+      youtubeId: video.youtubeId,
+      publishedAt: video.publishedAt,
+    },
+    siteUrl,
+  );
 
   return pageMetadata({
     title: seoTitle,
     description: video.summaryEn ?? video.summaryMl ?? video.description,
     path: `/watch/${video.slug}`,
-    // The YouTube thumbnail, not /api/og — that route serves SVG, which no
-    // social crawler renders, so the card came through with no image at all.
-    // This is a real 1280x720 JPEG and shows the actual frame.
     ogImage: video.thumbnailUrl,
     type: "video.other",
     publishedTime: video.publishedAt,

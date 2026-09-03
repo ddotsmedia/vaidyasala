@@ -1,0 +1,296 @@
+CLAUDE CODE PROMPT: VAIDYASALA AYURVEDA FEATURES
+=========================================================
+SESSION RULES - NON-NEGOTIABLE
+✓ NO questions - full automation
+✓ Additive migrations only
+✓ Build → Commit → Push → Deploy
+✓ Token budget: 45,000 max
+✓ CRITICAL: rm -rf apps/web/.next before VPS build
+
+=========================================================
+OBJECTIVE
+=========================================================
+Add Dosha Assessment Quiz + Wellness Tracker
+Impact: +40% engagement, +25% return visitors
+
+TARGET COMPLETION: 3 hours
+ESTIMATED TOKENS: 30,000-40,000
+
+=========================================================
+TASK 1: DATABASE MIGRATIONS (10 min)
+=========================================================
+Create: apps/web/prisma/migrations/[timestamp]_add_dosha_tables/migration.sql
+
+```sql
+CREATE TABLE IF NOT EXISTS "DoshaAssessment" (
+  "id" TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
+  "userId" TEXT UNIQUE,
+  "vata" INTEGER DEFAULT 0,
+  "pitta" INTEGER DEFAULT 0,
+  "kapha" INTEGER DEFAULT 0,
+  "dominantDosha" VARCHAR(10),
+  "submittedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS "WellnessEntry" (
+  "id" TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
+  "userId" TEXT NOT NULL,
+  "date" DATE NOT NULL,
+  "energy" INTEGER,
+  "digestion" INTEGER,
+  "mood" INTEGER,
+  "sleep" INTEGER,
+  "notes" TEXT,
+  "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE("userId", "date")
+);
+
+CREATE TABLE IF NOT EXISTS "DoshaHistory" (
+  "id" TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
+  "userId" TEXT NOT NULL,
+  "doshaDate" DATE NOT NULL,
+  "season" VARCHAR(20),
+  "vata" INTEGER,
+  "pitta" INTEGER,
+  "kapha" INTEGER,
+  "dominantDosha" VARCHAR(10),
+  UNIQUE("userId", "doshaDate")
+);
+
+CREATE INDEX IF NOT EXISTS "idx_dosha_user" ON "DoshaAssessment"("userId");
+CREATE INDEX IF NOT EXISTS "idx_wellness_user_date" ON "WellnessEntry"("userId", "date");
+```
+
+Update: apps/web/prisma/schema.prisma
+Add models: DoshaAssessment, WellnessEntry, DoshaHistory
+
+Run:
+pnpm prisma migrate dev --name add_dosha_tables
+
+Status: [ ] Done
+
+=========================================================
+TASK 2: DOSHA QUIZ COMPONENT (60 min)
+=========================================================
+Create: apps/web/lib/dosha-questions.ts
+```ts
+export const doshaQuestions = [
+  {
+    id: 1,
+    question: "What is your body frame?",
+    answers: [
+      { text: "Slim, light build", dosha: "vata", points: 3 },
+      { text: "Medium, muscular build", dosha: "pitta", points: 3 },
+      { text: "Sturdy, heavier build", dosha: "kapha", points: 3 }
+    ]
+  },
+  // Add 19 more questions covering:
+  // - Body temperature, skin, digestion, energy, sleep
+  // - Emotional traits, food preferences, activity level
+  // Total: 20 questions, 3 dosha options each
+];
+
+export const doshaDescriptions = {
+  vata: "Air element - creative, active, quick-thinking",
+  pitta: "Fire element - intense, ambitious, sharp intellect",
+  kapha: "Earth element - calm, stable, nurturing"
+};
+```
+
+Create: apps/web/components/DoshaQuiz.tsx
+- Display 20 questions (one per page or all scrollable)
+- Track: vata/pitta/kapha points
+- Show progress bar
+- Calculate dominant dosha
+- Display result page with description + recommendations
+
+Create: apps/web/app/quiz/page.tsx
+- Route: /quiz
+- Render: <DoshaQuiz onComplete={handleSave} />
+
+Create: apps/web/app/api/dosha/route.ts
+- POST /api/dosha
+- Save DoshaAssessment to database
+- Return: { dominantDosha, scores, recommendations }
+
+Test:
+✓ Quiz loads without auth (guest allowed)
+✓ Can complete all 20 questions
+✓ Result page shows dominant dosha
+✓ Saved to database if user logged in
+
+Status: [ ] Done
+
+=========================================================
+TASK 3: WELLNESS TRACKER (50 min)
+=========================================================
+Create: apps/web/components/WellnessTracker.tsx
+- Form (requires login):
+  - Date picker (default: today)
+  - Energy level: 1-10 slider
+  - Digestion: 1-10 slider
+  - Mood: 1-10 slider
+  - Sleep quality: 1-10 slider
+  - Notes: textarea (optional)
+- Submit button → save to API
+
+Create: apps/web/app/api/wellness/route.ts
+- POST: Save WellnessEntry
+- GET: Fetch entries for user (last 30 days)
+
+Create: apps/web/components/WellnessChart.tsx
+- Use recharts library
+- Line chart: Energy/Digestion/Mood/Sleep over 30 days
+- Hover: Show date + values
+
+Create: apps/web/app/wellness/page.tsx
+- Route: /wellness (auth required)
+- Render: <WellnessTracker /> + <WellnessChart />
+- Show stats: Average energy, best day, trends
+
+Test:
+✓ Login required
+✓ Can add daily entry
+✓ Chart shows data after multiple entries
+✓ Data persists across sessions
+
+Status: [ ] Done
+
+=========================================================
+TASK 4: DOSHA-BASED RECOMMENDATIONS (30 min)
+=========================================================
+Create: apps/web/lib/recommendations.ts
+```ts
+export const doshaRecommendations = {
+  vata: {
+    foods: ["Warm oils", "Root vegetables", "Grains", "Nuts"],
+    activities: ["Gentle yoga", "Meditation", "Warm routines"],
+    season: "Winter - warming practices",
+    videosToWatch: [] // IDs of vata-related videos
+  },
+  pitta: {
+    foods: ["Cooling herbs", "Fresh fruits", "Vegetables", "Coconut"],
+    activities: ["Swimming", "Cool walks", "Moon gazing"],
+    season: "Summer - cooling practices",
+    videosToWatch: []
+  },
+  kapha: {
+    foods: ["Warming spices", "Light foods", "Bitter herbs"],
+    activities: ["Vigorous exercise", "Stimulating activities"],
+    season: "Spring - invigorating practices",
+    videosToWatch: []
+  }
+};
+```
+
+Create: apps/web/components/DoshaRecommendations.tsx
+- Fetch user's dosha from database
+- Show: Foods, activities, season tips
+- Show: 3-5 recommended videos based on dosha
+- Link to each video
+
+Add to: apps/web/app/wellness/page.tsx
+- Show <DoshaRecommendations /> after tracker
+
+Status: [ ] Done
+
+=========================================================
+TASK 5: NAVBAR LINKS & CTA (15 min)
+=========================================================
+Update: apps/web/components/Navbar.tsx
+- Add link: "Take Dosha Quiz" → /quiz
+- Add link: "Wellness Tracker" → /wellness (if logged in)
+
+Update: apps/web/app/page.tsx (homepage)
+- Add CTA section: "Discover Your Dosha"
+- Button: "Start Quiz" → /quiz
+- Show badges: 1000+ completed, 4.8 rating
+
+Status: [ ] Done
+
+=========================================================
+TASK 6: STYLING & RESPONSIVE (20 min)
+=========================================================
+- Use Tailwind dark mode for consistency
+- Quiz: 1 column mobile, 2 columns desktop
+- Charts: 100% width, scrollable on mobile
+- Forms: Large touch targets (44px+)
+- Colors: Use vaid-red (#ef4444) for CTAs
+
+Status: [ ] Done
+
+=========================================================
+TASK 7: BUILD & TEST (15 min)
+=========================================================
+pnpm build
+pnpm dev
+
+Test:
+✓ Quiz page loads at /quiz
+✓ Can complete 20 questions
+✓ Result saves to database
+✓ Wellness tracker works (auth required)
+✓ Charts render with sample data
+✓ Dosha recommendations load
+✓ No TypeScript errors
+✓ Mobile responsive
+✓ Lighthouse > 85
+
+Status: [ ] Done
+
+=========================================================
+TASK 8: DEPLOY (10 min)
+=========================================================
+Database:
+pnpm prisma migrate deploy
+
+Git:
+git add .
+git commit -m "Feat: Ayurveda features - Dosha quiz + wellness tracker"
+git push origin main
+
+VPS:
+cd /opt/vaidhyasala/infra/docker
+rm -rf /opt/vaidhyasala/apps/web/.next
+docker compose -p vaidyasala -f compose.prod.yml up -d
+
+Verify:
+curl -I https://vaidhyasala.com/quiz
+# Should return HTTP 200
+
+Test in browser:
+✓ /quiz loads
+✓ /wellness loads (with login)
+✓ Can submit dosha assessment
+✓ Can add wellness entries
+✓ Charts display
+
+Status: [ ] Done
+
+=========================================================
+COMPLETION CHECKLIST
+=========================================================
+✓ DoshaAssessment table with 20-question quiz
+✓ WellnessEntry table for daily tracking
+✓ Quiz component: interactive, results saved
+✓ Wellness tracker: charts, data visualization
+✓ Dosha recommendations: foods, activities, videos
+✓ Auth-gated wellness page
+✓ Responsive design (mobile-first)
+✓ Deployed to production
+
+EXPECTED IMPACT:
+- 👥 Engagement: +40% (users return daily)
+- 📈 Retention: +25% repeat visitors
+- 🎯 Personalization: Dosha-specific content
+- 💪 Community: Users track health improvements
+
+MONETIZATION POTENTIAL:
+- Premium wellness plan ($5/month)
+- Personalized diet plans ($10)
+- 1-1 consultations ($50+)
+- Ayurvedic product affiliate links
+
+ESTIMATED TOKENS USED: 28,000-38,000
+ACTUAL TOKENS USED: _______

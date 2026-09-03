@@ -197,10 +197,35 @@ at different URLs; Vaidyasala serves one bilingual URL per video. Adding
 `/ml/*` and `/en/*` would manufacture duplicate content and fork 503 canonicals.
 The real ML/EN gap is `titleEn` being null — a §8.2 enrichment run, not markup.
 
-> ⚠ **Domain is unresolved.** The brief says `vadhyasala.com`, VARIABLES.md says
-> `vaidhyasala.com`, the repo namespace is `vaidyasala`. Everything derives from
-> `NEXT_PUBLIC_SITE_URL`, so it is one deploy value — but a canonical pointing
-> at a domain that does not resolve deindexes the site. Confirm before deploy.
+### The domain, and the build-time trap it exposed
+
+**Domain confirmed: `vaidhyasala.com`** (owner, 2026-08-31) — which is what
+VARIABLES.md already recorded, and every file in the repo already used. The
+`vadhyasala.com` in the SEO brief was a typo. `vaidyasala` without the *h*
+stays as-is: it is the package namespace and the YouTube handle, not the domain.
+
+Confirming it surfaced a worse problem. **`NEXT_PUBLIC_SITE_URL` is inlined at
+`next build`**, into the client bundle and into every prerendered page — it
+cannot be supplied afterwards by compose or `.env`. `Dockerfile.web` never
+declared it, so a production image would have shipped:
+
+```
+<link rel="canonical" href="http://localhost:3000">   … on every page
+Host: http://localhost:3000                           … in robots.txt
+Sitemap: http://localhost:3000/sitemap/videos.xml     … ×4
+```
+
+Measured, not inferred — built without the variable and read it out of
+`.next/server/app/index.html`. Google would have read that as the entire site
+canonicalising somewhere unreachable: strictly worse than shipping no SEO.
+
+Fixed (`Dockerfile.web` + `deploy.yml`): the build takes
+`--build-arg NEXT_PUBLIC_SITE_URL` and **fails** unless it is an `https://`
+origin — no default, because a plausible-but-wrong origin deindexes silently
+while a failed build does not. CI reads the `SITE_URL` repo variable.
+
+**Before the first deploy, set the GitHub repo variable `SITE_URL` to
+`https://vaidhyasala.com`** or every image build will stop with a clear error.
 
 ---
 

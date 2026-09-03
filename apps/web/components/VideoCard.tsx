@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Play } from "lucide-react";
 import { VideoCard as UIVideoCard, type VideoCardData, type VideoCardSize } from "@vaidyasala/ui";
 import { CARD_SIZES } from "@/lib/thumbnail";
+import { AnimatedCard } from "@/components/AnimatedCard";
 
 /**
  * Enhanced video card component with hover effects and improved visual design.
@@ -15,11 +16,12 @@ export interface EnhancedVideoCardProps {
 
 export function VideoCard({ video, size = "md", imageSizes }: EnhancedVideoCardProps) {
   return (
-    <Link
-      href={`/watch/${video.slug}`}
-      className="group block focus-visible:outline-focus rounded-lg focus-visible:outline-2"
-    >
-      <div className="relative transition-transform duration-200 group-hover:scale-[1.05]">
+    <AnimatedCard className="group block focus-visible:outline-focus rounded-lg focus-visible:outline-2">
+      <Link
+        href={`/watch/${video.slug}`}
+        className="group block focus-visible:outline-focus rounded-lg focus-visible:outline-2"
+      >
+        <div className="relative transition-transform duration-200 group-hover:scale-[1.05]">
         {/* Enhanced card with shadow that expands on hover */}
         <div className="relative rounded-lg shadow-md transition-shadow duration-200 group-hover:shadow-2xl">
           {/* Base card from UI package */}
@@ -61,7 +63,8 @@ export function VideoCard({ video, size = "md", imageSizes }: EnhancedVideoCardP
           */}
         </div>
       </div>
-    </Link>
+      </Link>
+    </AnimatedCard>
   );
 }
 

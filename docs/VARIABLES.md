@@ -10,9 +10,22 @@ DEFAULT_BRANCH = main
 REGISTRY = ghcr.io/ddotsmedia/vaidyasala
 
 ## DOMAIN (needed at Phase 7)
-DOMAIN = vaidhyasala.com
+DOMAIN = vaidhyasala.com                 # confirmed by the owner 2026-08-31
 DNS = Cloudflare (proxied)
 CANONICAL = https://vaidhyasala.com
+
+⚠️ NEXT_PUBLIC_SITE_URL = https://vaidhyasala.com
+   MUST be passed as a BUILD ARG, not a runtime env var. NEXT_PUBLIC_* is
+   inlined by `next build` into the client bundle and into every statically
+   prerendered page, so setting it in .env or compose has no effect on an
+   already-built image. Omit it and the image ships
+   <link rel="canonical" href="http://localhost:3000"> on every page and a
+   robots.txt whose Host + 4 Sitemap lines point at localhost — Google would
+   read that as the whole site canonicalising somewhere unreachable.
+
+   CI: set the GitHub repo VARIABLE `SITE_URL` (not a secret — it is public).
+   Manual: docker build --build-arg NEXT_PUBLIC_SITE_URL=https://vaidhyasala.com
+   Dockerfile.web fails the build if it is unset or not an https:// origin.
 
 ## VPS (needed at Phase 7) — ⚠️ SHARED SERVER
 VPS_IP = 194.164.151.202

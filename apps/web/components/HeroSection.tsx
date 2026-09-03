@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Play } from "lucide-react";
 import type { HeroVideo } from "@/lib/feeds";
+import { AnimatedHero } from "@/components/AnimatedHero";
 
 /**
  * Enhanced hero section with stunning visuals.
@@ -66,38 +67,41 @@ export function HeroSection({ video }: { video: HeroVideo }) {
 
           {/* Bottom content - creator, title, description */}
           <div className="absolute inset-x-0 bottom-0 flex flex-col gap-3 p-4 sm:gap-4 sm:p-6">
-            {/* Title */}
-            <h1
-              id="hero-title"
-              className="font-ml line-clamp-2 text-2xl font-bold leading-tight text-white sm:text-3xl lg:text-4xl"
-              lang="ml"
-            >
-              {video.titleMl}
-            </h1>
-
-            {/* Description */}
-            {video.blurb ? (
-              <p
-                className="font-ml line-clamp-2 max-w-3xl text-sm leading-relaxed text-white/90 sm:text-base sm:line-clamp-3"
-                lang="ml"
-              >
-                {video.blurb}
-              </p>
-            ) : null}
-
-            {/* Watch Now button - mobile and desktop */}
-            <div className="mt-2 flex items-center gap-3">
-              <button
-                type="button"
-                className="bg-vaid-red hover:bg-vaid-red/90 focus-visible:outline-focus inline-flex min-h-11 items-center gap-2 rounded-full px-6 text-sm font-semibold text-white transition-all duration-200 focus-visible:outline-2 sm:min-h-12 sm:px-8 sm:text-base"
-              >
-                <Play className="size-4 fill-current sm:size-5" aria-hidden />
-                Watch Now
-              </button>
-              <span className="text-xs text-white/70 tabular-nums sm:text-sm">
-                {video.durationSec}s
-              </span>
-            </div>
+            <AnimatedHero
+              title={
+                <h1
+                  id="hero-title"
+                  className="font-ml line-clamp-2 text-2xl font-bold leading-tight text-white sm:text-3xl lg:text-4xl"
+                  lang="ml"
+                >
+                  {video.titleMl}
+                </h1>
+              }
+              subtitle={
+                video.blurb ? (
+                  <p
+                    className="font-ml line-clamp-2 max-w-3xl text-sm leading-relaxed text-white/90 sm:text-base sm:line-clamp-3"
+                    lang="ml"
+                  >
+                    {video.blurb}
+                  </p>
+                ) : undefined
+              }
+              buttons={
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    className="bg-vaid-red hover:bg-vaid-red/90 focus-visible:outline-focus inline-flex min-h-11 items-center gap-2 rounded-full px-6 text-sm font-semibold text-white transition-all duration-200 focus-visible:outline-2 sm:min-h-12 sm:px-8 sm:text-base"
+                  >
+                    <Play className="size-4 fill-current sm:size-5" aria-hidden />
+                    Watch Now
+                  </button>
+                  <span className="text-xs text-white/70 tabular-nums sm:text-sm">
+                    {video.durationSec}s
+                  </span>
+                </div>
+              }
+            />
           </div>
         </div>
       </Link>

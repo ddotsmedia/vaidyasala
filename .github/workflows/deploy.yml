@@ -63,8 +63,15 @@ jobs:
           # any top-level DB query fails the export — so set the BUILD_DATABASE_URL
           # secret to a database reachable from the runner if you want those
           # pages prerendered here rather than on first request.
+          # NEXT_PUBLIC_SITE_URL is inlined at build time into the client bundle
+          # and every prerendered page, so it cannot be supplied at run time.
+          # Set the SITE_URL repo variable (same pattern as DEPLOY_DIR); the web
+          # Dockerfile fails the build if it is missing rather than baking
+          # localhost canonicals into a production image. Unused by the worker
+          # image, which simply ignores it.
           build-args: |
             DATABASE_URL=${{ secrets.BUILD_DATABASE_URL }}
+            NEXT_PUBLIC_SITE_URL=${{ vars.SITE_URL }}
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.app }}:${{ github.sha }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.app }}:latest

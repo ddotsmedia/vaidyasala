@@ -34,6 +34,19 @@ export const metadata: Metadata = {
     path: "/",
   }),
   title: { absolute: "Vaidyasala — Malayalam health videos, searchable by question" },
+  openGraph: {
+    title: "Vaidyasala — Malayalam health videos",
+    description:
+      "Search 500+ Malayalam Ayurveda and health videos by what you actually want to know.",
+    type: "website",
+    url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Vaidyasala — Malayalam health videos",
+    description:
+      "Search 500+ Malayalam Ayurveda and health videos by what you actually want to know.",
+  },
 };
 
 const CHANNEL_URL = "https://www.youtube.com/@vaidyasala?sub_confirmation=1";

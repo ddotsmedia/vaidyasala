@@ -3,6 +3,7 @@ import { Toaster } from "@vaidyasala/ui";
 import { fontVariables } from "@/lib/fonts";
 import { ThemeScript } from "@/components/shell/theme-switcher";
 import { Pwa } from "@/components/pwa/pwa";
+import { PageTransition } from "@/components/PageTransition";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -22,9 +23,15 @@ export default function RootLayout({
     <html lang="ml" className={fontVariables} suppressHydrationWarning>
       <head>
         <ThemeScript />
+        <link href="https://cdn.plyr.io/3.7.8/plyr.css" rel="stylesheet" />
+        <meta name="theme-color" content="#ef4444" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <link rel="apple-touch-icon" href="/logo-192.png" />
+        <link rel="manifest" href="/manifest.json" />
       </head>
       <body className="min-h-dvh antialiased">
-        {children}
+        <PageTransition>{children}</PageTransition>
         <Toaster />
         <Pwa />
       </body>

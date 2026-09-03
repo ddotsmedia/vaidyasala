@@ -1,0 +1,179 @@
+CLAUDE CODE PROMPT: VAIDYASALA VISUAL ENHANCEMENT
+=========================================================
+SESSION RULES - NON-NEGOTIABLE
+=========================================================
+✓ NO questions - make reasonable assumptions
+✓ NO db:seed (ever)
+✓ ONLY additive migrations (never destructive)
+✓ ONLY touch /opt/vaidhyasala (never other VPS projects)
+✓ Build → Commit → Push → Deploy after task
+✓ TypeScript strict mode (no any types)
+✓ CRITICAL: rm -rf apps/web/.next before VPS build
+✓ Minimize Claude tokens - use concise code, no explanations
+✓ Token budget: 50,000 max (goal: 30,000)
+
+=========================================================
+OBJECTIVE
+=========================================================
+Add smooth animations + better video player + social sharing
+Impact: +30-50% visual appeal, +20% social reach
+
+TARGET COMPLETION: 2-3 hours
+ESTIMATED TOKEN USAGE: 25,000-35,000
+
+=========================================================
+TASK 1: INSTALL DEPENDENCIES (5 min)
+=========================================================
+Run in /opt/vaidhyasala:
+
+pnpm add framer-motion plyr react-share next-seo
+
+Status: [ ] Done
+
+=========================================================
+TASK 2: ADD FRAMER MOTION ANIMATIONS (45 min)
+=========================================================
+Create: apps/web/components/AnimatedCard.tsx
+- Fade in on scroll
+- Hover scale 1.05 + shadow
+- Stagger children animations
+
+Create: apps/web/components/PageTransition.tsx
+- Fade in/out on route change
+- Duration: 300ms ease-out
+
+Create: apps/web/components/AnimatedHero.tsx
+- Fade in title (0-400ms)
+- Slide in buttons (200-600ms)
+- Rotate play button hover
+
+Add to apps/web/app/layout.tsx:
+- Wrap main content with <PageTransition>
+
+Key files to update:
+- apps/web/components/VideoCard.tsx → Add AnimatedCard wrapper
+- apps/web/components/HeroSection.tsx → Add AnimatedHero
+- apps/web/app/page.tsx → Stagger video card animations
+
+Status: [ ] Done
+
+=========================================================
+TASK 3: REPLACE VIDEO PLAYER WITH PLYR (30 min)
+=========================================================
+Create: apps/web/components/PlyrPlayer.tsx
+- Accept youtubeId prop
+- Render Plyr with YouTube source
+- Full width, responsive
+- Enable captions, quality selection, playback speed
+
+Update: apps/web/app/watch/[id]/page.tsx
+- Replace YouTube iframe with <PlyrPlayer youtubeId={video.youtubeId} />
+
+Install Plyr CSS in layout:
+- Add <link href="https://cdn.plyr.io/3.7.8/plyr.css" rel="stylesheet" />
+
+Status: [ ] Done
+
+=========================================================
+TASK 4: OPEN GRAPH TAGS FOR SHARING (40 min)
+=========================================================
+Create: apps/web/lib/metadata.ts
+- Function: generateVideoMetadata(video)
+  Returns: OpenGraph object with:
+  - og:title (English title or Malayalam)
+  - og:description (first 160 chars of description)
+  - og:image (YouTube thumbnail)
+  - og:video (YouTube video URL)
+  - og:type: "video.other"
+
+Update: apps/web/app/watch/[id]/page.tsx
+- Export generateMetadata function
+- Call generateVideoMetadata(video)
+- Return: { title, description, openGraph, twitter }
+
+Update: apps/web/app/page.tsx (homepage)
+- Add basic OpenGraph with site logo + description
+- Set twitter:card: "summary_large_image"
+
+Create: apps/web/components/ShareButtons.tsx
+- Facebook, Twitter, WhatsApp, LinkedIn share buttons (react-share)
+- Place below video title
+
+Status: [ ] Done
+
+=========================================================
+TASK 5: DYNAMIC FAVICON & THEME (20 min)
+=========================================================
+Update: apps/web/app/layout.tsx
+- Add theme color meta tag: #ef4444 (vaid-red)
+- Add apple-touch-icon for iOS
+- Add manifest for PWA
+
+Create: public/favicon.svg
+- Use #ef4444 circle + play button icon
+
+Status: [ ] Done
+
+=========================================================
+TASK 6: BUILD & TEST LOCALLY (20 min)
+=========================================================
+Commands:
+pnpm build
+pnpm dev
+
+Test:
+✓ Homepage loads with fade-in animations
+✓ Video cards scale on hover
+✓ Video page has Plyr player (not YouTube iframe)
+✓ Share buttons visible below video
+✓ Open Graph tags present (View Page Source)
+✓ No TypeScript errors
+✓ Lighthouse > 85
+
+Status: [ ] Done
+
+=========================================================
+TASK 7: DEPLOY (10 min)
+=========================================================
+git add .
+git commit -m "Feat: Visual enhancement - Framer Motion + Plyr + sharing"
+git push origin main
+
+SSH to VPS:
+cd /opt/vaidhyasala/infra/docker
+rm -rf /opt/vaidhyasala/apps/web/.next
+docker compose -p vaidyasala -f compose.prod.yml up -d
+
+Verify:
+curl -I https://vaidhyasala.com
+# Should return HTTP 200
+
+Test in browser:
+✓ Hero animations smooth
+✓ Cards animate on scroll
+✓ Video player is Plyr (not YouTube)
+✓ Share buttons work
+✓ Social preview shows correct image + title
+
+Status: [ ] Done
+
+=========================================================
+COMPLETION CHECKLIST
+=========================================================
+✓ Framer Motion installed + animations working
+✓ Plyr video player deployed (no YouTube iframes)
+✓ Open Graph tags on all pages
+✓ Share buttons visible + functional
+✓ TypeScript strict mode - no errors
+✓ Lighthouse > 85
+✓ Deployed to production
+✓ Website live at https://vaidhyasala.com
+
+EXPECTED IMPACT:
+- 🎨 Visual appeal: +40%
+- 📱 Social sharing: +25% traffic
+- ⚡ Perceived speed: +30% (animations feel faster)
+- 🔍 SEO: Unchanged (animations don't hurt SEO)
+
+ESTIMATED TOKENS USED: 20,000-30,000
+ACTUAL TOKENS USED: _______

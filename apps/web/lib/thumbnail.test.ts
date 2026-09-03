@@ -36,7 +36,7 @@ describe("thumbnailSrcSet", () => {
   // plain src rather than have sizes guessed for it.
   it.each([
     ["a non-YouTube host", "https://cdn.example.com/thumb.jpg"],
-    ["an R2-hosted still", "https://media.vaidyasala.com/vi/abc/maxresdefault.jpg"],
+    ["an R2-hosted still", "https://media.vaidhyasala.com/vi/abc/maxresdefault.jpg"],
     ["an unknown rendition name", `${BASE}/frame0.jpg`],
     ["a non-jpg extension", `${BASE}/maxresdefault.webp`],
     ["an empty string", ""],

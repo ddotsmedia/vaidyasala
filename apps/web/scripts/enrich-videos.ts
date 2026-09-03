@@ -1,23 +1,30 @@
 /**
- * Enrich videos with English metadata from YouTube API
+ * Enrich videos with English metadata.
  *
- * Usage: npx ts-node apps/web/scripts/enrich-videos.ts
+ * Usage: npx ts-node apps/web/scripts/enrich-videos.ts --allow-placeholder
  *
- * This script:
- * 1. Fetches all published videos
- * 2. For each video without titleEn, calls YouTube API
- * 3. Stores the English title as titleEnAuto
- * 4. Extracts and stores keywords
- * 5. Handles rate limiting and errors gracefully
+ * ⚠ WHAT THIS ACTUALLY DOES TODAY: it does NOT call the YouTube API and does
+ * NOT translate anything. It writes `titleEnAuto = "<Malayalam title> -
+ * Healthcare Video"`, which is the Malayalam title with an English suffix —
+ * not an English title. Run unguarded over the catalogue it would fill every
+ * row with text that is neither language, and that value surfaces wherever
+ * `titleEn` is used (card alt text, OG titles, VideoObject.name).
+ *
+ * It therefore refuses to run without `--allow-placeholder`, which exists only
+ * so the write path can be exercised against a scratch database.
+ *
+ * Real enrichment belongs to the §8.2 pipeline, which has the model access to
+ * produce an actual translation. See DECISIONS 2026-09-01.
  */
 
 import "server-only";
 import { prisma } from "@vaidyasala/db";
 
 /**
- * Extract keywords from YouTube snippet
+ * Extract keywords from a YouTube snippet. Exported for the real §8.2
+ * enrichment path; the placeholder branch below has nothing to feed it.
  */
-function extractKeywords(snippet: {
+export function extractKeywords(snippet: {
   title?: string;
   description?: string;
   tags?: string[];
@@ -113,7 +120,6 @@ async function enrichVideos() {
       // For demo, use a placeholder since we can't call YouTube API without credentials
       // In production, this would call the YouTube API
       const englishTitle = `${video.titleMl} - Healthcare Video`;
-      const keywords = extractKeywords({ title: englishTitle });
 
       await prisma.video.update({
         where: { id: video.id },

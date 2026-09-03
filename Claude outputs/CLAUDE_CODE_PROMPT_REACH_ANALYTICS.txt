@@ -1,0 +1,242 @@
+CLAUDE CODE PROMPT: VAIDYASALA REACH & ANALYTICS
+=========================================================
+SESSION RULES - NON-NEGOTIABLE
+✓ NO questions - full automation
+✓ ONLY additive migrations
+✓ Build → Commit → Push → Deploy
+✓ Token budget: 40,000 max
+✓ CRITICAL: rm -rf apps/web/.next before VPS build
+
+=========================================================
+OBJECTIVE
+=========================================================
+Add Plausible Analytics + RSS Feed + Email Setup
+Impact: +50% reach, +30% repeat visitors
+
+TARGET COMPLETION: 2 hours
+ESTIMATED TOKENS: 20,000-30,000
+
+=========================================================
+TASK 1: INSTALL DEPENDENCIES (5 min)
+=========================================================
+pnpm add plausible-tracker feed react-hook-form zod
+
+Status: [ ] Done
+
+=========================================================
+TASK 2: PLAUSIBLE ANALYTICS (25 min)
+=========================================================
+Sign up: plausible.io (free tier available)
+Domain: vaidhyasala.com
+
+Add to apps/web/app/layout.tsx:
+```tsx
+<script defer data-domain="vaidhyasala.com"
+        src="https://plausible.io/js/script.js"></script>
+```
+
+Create: apps/web/lib/analytics.ts
+- Function: trackVideoView(videoId: string)
+  Calls: window.plausible('Video Viewed', { props: { videoId } })
+- Function: trackSearch(query: string)
+  Calls: window.plausible('Search', { props: { query } })
+
+Update: apps/web/app/watch/[id]/page.tsx
+- Call trackVideoView() on mount
+- Track video engagement (scroll depth, time watched)
+
+Update: apps/web/components/SearchForm.tsx
+- Call trackSearch() on form submit
+
+Test:
+- Visit video page
+- Check Plausible dashboard → should see events
+- No errors in console
+
+Status: [ ] Done
+
+=========================================================
+TASK 3: RSS FEED GENERATION (40 min)
+=========================================================
+Create: apps/web/app/feed/route.ts
+- GET /feed.xml endpoint
+- Use 'feed' library
+- Generate RSS feed with:
+  - Title: "Vaidyasala - Ayurvedic Health Education"
+  - Description: "503 Ayurvedic health videos"
+  - Link: https://vaidhyasala.com
+  - Items: All published videos (latest first)
+  - Each item: title, description, link, pubDate, creator
+
+Create: apps/web/app/sitemap.ts (if not exists)
+- Add feed URL: https://vaidhyasala.com/feed.xml
+
+Add to apps/web/app/layout.tsx:
+```tsx
+<link rel="alternate" type="application/rss+xml"
+      href="/feed.xml" title="Vaidyasala RSS Feed" />
+```
+
+Test:
+curl https://vaidhyasala.com/feed.xml
+# Should return valid RSS XML
+
+Status: [ ] Done
+
+=========================================================
+TASK 4: EMAIL SIGNUP (35 min)
+=========================================================
+Create: apps/web/components/NewsletterSignup.tsx
+- Form: Email input + Subscribe button
+- Use react-hook-form + zod
+- Submit to /api/subscribe endpoint
+- Success message: "Check your email!"
+- Error handling: Show error message
+
+Create: apps/web/app/api/subscribe/route.ts
+- POST endpoint
+- Validate email (zod)
+- Save to database: emails table (create migration)
+- Return 200 { success: true }
+
+Migration: apps/web/prisma/migrations/[timestamp]_add_emails/migration.sql
+```sql
+CREATE TABLE IF NOT EXISTS "Email" (
+  "id" TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
+  "email" TEXT NOT NULL UNIQUE,
+  "subscribedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  "active" BOOLEAN DEFAULT true
+);
+
+CREATE INDEX IF NOT EXISTS "idx_email_active" ON "Email"("active");
+```
+
+Place newsletter signup:
+- Homepage (bottom of hero section)
+- Footer (all pages)
+- Video page (sidebar)
+
+Test:
+- Submit email
+- Check database: email should exist
+- Try duplicate: should show error
+- Check spam folder (email services)
+
+Status: [ ] Done
+
+=========================================================
+TASK 5: EMAIL NOTIFICATION SETUP (25 min)
+=========================================================
+Create: apps/web/lib/email.ts
+- Function: sendNewVideoNotification(video, emails)
+  Uses: Resend API (free tier 100/day)
+  Sends: "New video: {title}"
+  Link: https://vaidhyasala.com/watch/{id}
+
+Create: apps/web/app/api/notify-subscribers/route.ts
+- POST endpoint (admin only)
+- Input: videoId
+- Query: Get video + all subscribed emails
+- Call: sendNewVideoNotification()
+- Return: { sent: count }
+
+Note: This is manual for now (can be automated with cron later)
+Admin can POST to this endpoint when adding new videos
+
+Optional: Add CRON trigger in compose.prod.yml
+- Check for new videos daily
+- Auto-send notifications
+
+Status: [ ] Done
+
+=========================================================
+TASK 6: SEO METADATA UPDATES (20 min)
+=========================================================
+Create: apps/web/lib/seo.ts
+- Function: generateVideoSchema(video)
+  Returns: VideoObject JSON-LD with:
+  - name, description, thumbnailUrl, uploadDate, duration
+  - author.name (creator), contentUrl (YouTube)
+
+Create: apps/web/components/JsonLd.tsx
+- Accept schema prop
+- Render: <script type="application/ld+json">{schema}</script>
+
+Update: apps/web/app/watch/[id]/page.tsx
+- Add <JsonLd schema={generateVideoSchema(video)} />
+
+Update: robots.txt
+- Ensure: Sitemap: https://vaidhyasala.com/sitemap.xml
+
+Test:
+- Visit video page
+- View page source → find <script type="application/ld+json">
+- Validate at https://validator.schema.org
+- Should show VideoObject recognized
+
+Status: [ ] Done
+
+=========================================================
+TASK 7: BUILD & TEST (15 min)
+=========================================================
+pnpm build
+pnpm dev
+
+Test:
+✓ RSS feed valid: curl localhost:3000/feed.xml
+✓ Newsletter signup works
+✓ Analytics events firing (check console)
+✓ VideoObject schema valid
+✓ No TypeScript errors
+✓ Lighthouse > 85
+
+Status: [ ] Done
+
+=========================================================
+TASK 8: DEPLOY (10 min)
+=========================================================
+Database migration:
+pnpm prisma migrate dev --name add_emails
+
+Git:
+git add .
+git commit -m "Feat: Analytics + RSS + email signup"
+git push origin main
+
+VPS:
+cd /opt/vaidhyasala/infra/docker
+rm -rf /opt/vaidhyasala/apps/web/.next
+docker compose -p vaidyasala -f compose.prod.yml up -d
+
+Verify:
+curl -I https://vaidhyasala.com
+curl https://vaidhyasala.com/feed.xml | head -20
+# Check Plausible dashboard → events should appear
+
+Status: [ ] Done
+
+=========================================================
+COMPLETION CHECKLIST
+=========================================================
+✓ Plausible Analytics tracking page views + events
+✓ RSS feed available at /feed.xml
+✓ Newsletter signup form on homepage + footer
+✓ Email database table created
+✓ Subscribe endpoint working
+✓ VideoObject schema on all video pages
+✓ Sitemap includes feed URL
+✓ Deployed to production
+
+EXPECTED IMPACT:
+- 📊 Analytics: Real-time user behavior tracking
+- 📡 Reach: RSS syndication to Apple Podcasts, Spotify
+- 📧 Engagement: Newsletter signup + notifications
+- 🔍 SEO: Better structured data for Google Rich Results
+
+NEXT STEPS:
+1. Go to plausible.io dashboard → monitor events
+2. Share RSS feed link: vaidhyasala.com/feed.xml
+3. Set up email notifications when new videos added
+
+ESTIMATED TOKENS USED: 18,000-28,000
+ACTUAL TOKENS USED: _______
