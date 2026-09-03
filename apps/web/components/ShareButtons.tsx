@@ -22,7 +22,7 @@ export function ShareButtons({ url, title, text }: ShareButtonsProps) {
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <FacebookShareButton url={url} quote={shareText}>
+      <FacebookShareButton url={url} hashtag={`#${title.split(" ")[0]}`}>
         <FacebookIcon size={32} round />
       </FacebookShareButton>
       <TwitterShareButton url={url} title={shareText}>
@@ -31,7 +31,7 @@ export function ShareButtons({ url, title, text }: ShareButtonsProps) {
       <WhatsappShareButton url={url} title={shareText}>
         <WhatsappIcon size={32} round />
       </WhatsappShareButton>
-      <LinkedinShareButton url={url} title={shareText}>
+      <LinkedinShareButton url={url} title={shareText} summary={text || ""}>
         <LinkedinIcon size={32} round />
       </LinkedinShareButton>
     </div>

@@ -7,7 +7,7 @@ export interface VideoMetadataInput {
   description?: string;
   thumbnailUrl: string;
   youtubeId: string;
-  publishedAt?: Date;
+  publishedAt?: Date | string | null;
 }
 
 export function generateVideoMetadata(video: VideoMetadataInput, siteUrl: string): Metadata {
@@ -31,13 +31,19 @@ export function generateVideoMetadata(video: VideoMetadataInput, siteUrl: string
           alt: title,
         },
       ],
-      video: {
-        url: `https://www.youtube.com/embed/${video.youtubeId}`,
-        type: "text/html",
-        width: 1280,
-        height: 720,
-      },
-      ...(video.publishedAt && { publishedTime: video.publishedAt }),
+      videos: [
+        {
+          url: `https://www.youtube.com/embed/${video.youtubeId}`,
+          type: "text/html",
+          width: 1280,
+          height: 720,
+        },
+      ],
+      ...(video.publishedAt && typeof video.publishedAt === "string"
+        ? { publishedTime: video.publishedAt }
+        : video.publishedAt instanceof Date
+          ? { publishedTime: video.publishedAt }
+          : {}),
     },
     twitter: {
       card: "summary_large_image",

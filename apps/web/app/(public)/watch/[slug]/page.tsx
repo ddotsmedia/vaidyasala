@@ -41,15 +41,16 @@ export async function generateMetadata({
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
   // Generate video metadata with comprehensive Open Graph tags
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const videoMeta = generateVideoMetadata(
     {
       slug: video.slug,
       titleEn: video.titleEn || seoTitle,
-      titleMl: video.titleMl,
-      description: video.summaryEn ?? video.summaryMl ?? video.description,
+      titleMl: video.titleMl || undefined,
+      description: (video.summaryEn ?? video.summaryMl ?? video.description) || undefined,
       thumbnailUrl: video.thumbnailUrl,
       youtubeId: video.youtubeId,
-      publishedAt: video.publishedAt,
+      publishedAt: video.publishedAt || undefined,
     },
     siteUrl,
   );
