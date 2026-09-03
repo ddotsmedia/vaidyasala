@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { WellnessTracker } from "@/components/WellnessTracker";
 import { WellnessChart } from "@/components/WellnessChart";
+import { DoshaRecommendations } from "@/components/DoshaRecommendations";
+import { prisma } from "@vaidyasala/db";
 
 export const metadata: Metadata = {
   title: "Wellness Tracker - Monitor Your Health Journey",
@@ -17,6 +19,11 @@ export default async function WellnessPage() {
   if (!session?.user?.id) {
     redirect("/login");
   }
+
+  // Fetch user's dosha assessment
+  const doshaAssessment = await prisma.doshaAssessment.findUnique({
+    where: { userId: session.user.id },
+  });
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -40,6 +47,16 @@ export default async function WellnessPage() {
               <WellnessChart />
             </div>
           </div>
+
+          {/* Dosha Recommendations */}
+          {doshaAssessment?.dominantDosha && (
+            <div className="mt-12">
+              <h2 className="mb-8 text-3xl font-bold text-gray-900">
+                {doshaAssessment.dominantDosha.charAt(0).toUpperCase() + doshaAssessment.dominantDosha.slice(1)} Constitution Guide
+              </h2>
+              <DoshaRecommendations dosha={doshaAssessment.dominantDosha} />
+            </div>
+          )}
 
           {/* Tips Section */}
           <div className="mt-12 rounded-lg border border-gray-200 bg-blue-50 p-6">
