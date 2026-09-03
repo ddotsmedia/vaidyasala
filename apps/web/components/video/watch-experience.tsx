@@ -7,6 +7,7 @@ import { CARD_SIZES } from "@/lib/thumbnail";
 import type { WatchData } from "@/lib/video";
 import { PlayerProvider, usePlayer } from "./player-context";
 import { ShareButtons } from "@/components/ShareButtons";
+import { trackVideoView } from "@/lib/plausible";
 import { VideoPlayer } from "./video-player";
 import { SummaryCard } from "./summary-card";
 import { KeyTakeaways } from "./key-takeaways";
@@ -201,6 +202,11 @@ function WatchLayout({ data }: { data: WatchData }) {
   const { activated, theater } = usePlayer();
   const resumeSec = useResumeSec(data.id) ?? undefined;
   useKeyboardControls();
+
+  // Track video view on mount
+  useEffect(() => {
+    trackVideoView(data.id, data.titleMl);
+  }, [data.id, data.titleMl]);
   const shareUrl = `${SITE_URL}/watch/${data.slug}`;
   const next = data.related[0]
     ? {

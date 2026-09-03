@@ -29,6 +29,8 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="apple-touch-icon" href="/logo-192.png" />
         <link rel="manifest" href="/manifest.json" />
+        <link rel="alternate" type="application/rss+xml" href="/feed.xml" title="Vaidyasala RSS Feed" />
+        <script defer data-domain="vaidhyasala.com" src="https://plausible.io/js/script.js"></script>
       </head>
       <body className="min-h-dvh antialiased">
         <PageTransition>{children}</PageTransition>
