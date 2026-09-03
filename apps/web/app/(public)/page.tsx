@@ -135,6 +135,24 @@ export default async function HomePage() {
         </section>
       ) : null}
 
+      {/* Dosha Quiz CTA */}
+      <section className="bg-gradient-to-r from-vaid-red to-red-600 flex flex-col items-center gap-4 rounded-xl p-8 text-center text-white">
+        <div className="space-y-2">
+          <h2 className="text-2xl font-bold">Discover Your Dosha</h2>
+          <p className="text-red-100">Take our personalized Ayurvedic constitution quiz to receive tailored wellness recommendations.</p>
+        </div>
+        <div className="flex flex-wrap justify-center gap-2 text-sm">
+          <span className="inline-flex items-center rounded-full bg-white/20 px-3 py-1">✓ 1000+ completed</span>
+          <span className="inline-flex items-center rounded-full bg-white/20 px-3 py-1">⭐ 4.8 rating</span>
+        </div>
+        <a
+          href="/quiz"
+          className="mt-4 inline-flex items-center rounded-lg bg-white px-8 py-3 font-semibold text-vaid-red transition-transform hover:scale-105"
+        >
+          Start Quiz →
+        </a>
+      </section>
+
       {/* Subscribe */}
       <section className="border-border bg-surface flex flex-col items-center gap-3 rounded-xl border p-8 text-center">
         <h2 className="text-lg font-semibold">Enjoying Vaidyasala?</h2>

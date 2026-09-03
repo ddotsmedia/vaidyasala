@@ -53,6 +53,9 @@ export function TopBar() {
 
         <nav className="ml-auto flex items-center gap-1">
           <Button asChild variant="ghost" size="sm">
+            <Link href="/quiz">Quiz</Link>
+          </Button>
+          <Button asChild variant="ghost" size="sm">
             <Link href="/topics">Topics</Link>
           </Button>
           <Button asChild variant="ghost" size="sm">
