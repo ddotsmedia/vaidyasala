@@ -142,3 +142,21 @@ model DoshaHistory {
   @@unique([userId, doshaDate])
   @@index([userId, doshaDate])
 }
+
+// ───────────────────────── SUBTITLES (§2) ─────────────────────────
+/// Auto-generated subtitles via Deepgram for accessibility + SEO.
+model Subtitle {
+  id            String    @id @default(cuid())
+  videoId       String    @unique
+  language      String    @default("en")
+  vtt           String?   @db.Text
+  json          Json?     // Full transcript + word timings
+  transcript    String?   @db.Text
+  status        String    @default("pending") // "pending" | "processing" | "completed" | "failed"
+  transcribedAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([videoId])
+  @@index([status])
+}
