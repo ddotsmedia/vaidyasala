@@ -30,6 +30,9 @@ const envSchema = z.object({
   ANTHROPIC_API_KEY: z.string().optional(),
   EMBED_API_KEY: z.string().optional(),
 
+  // Deepgram (subtitles). Absent ⇒ fixture mode: no transcription.
+  DEEPGRAM_API_KEY: z.string().optional(),
+
   // Monitoring + analytics (§7.6/§10). All optional: absent ⇒ that sink is inert.
   // NOTE: the NEXT_PUBLIC_* values are also read as literal `process.env.X` in
   // lib/analytics and lib/monitoring — Next only inlines literal references into
@@ -55,6 +58,7 @@ export const env = envSchema.parse({
   MEILI_MASTER_KEY: process.env.MEILI_MASTER_KEY,
   ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
   EMBED_API_KEY: process.env.EMBED_API_KEY,
+  DEEPGRAM_API_KEY: process.env.DEEPGRAM_API_KEY,
   NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
   NEXT_PUBLIC_SENTRY_ENV: process.env.NEXT_PUBLIC_SENTRY_ENV,
   NEXT_PUBLIC_MIXPANEL_TOKEN: process.env.NEXT_PUBLIC_MIXPANEL_TOKEN,

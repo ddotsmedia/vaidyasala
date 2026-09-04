@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Plyr from "plyr";
 import "plyr/dist/plyr.css";
+
+// Dynamically import Plyr to handle module export compatibility
+const PlyrClass = typeof window !== "undefined" ? require("plyr") : null;
 
 interface PlyrPlayerProps {
   youtubeId: string;
@@ -17,7 +19,7 @@ interface SubtitleData {
 
 export function PlyrPlayer({ youtubeId, videoId, title }: PlyrPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const playerRef = useRef<Plyr | null>(null);
+  const playerRef = useRef<any>(null);
   const [subtitleData, setSubtitleData] = useState<SubtitleData | null>(null);
 
   // Fetch subtitles if videoId is provided
@@ -45,7 +47,7 @@ export function PlyrPlayer({ youtubeId, videoId, title }: PlyrPlayerProps) {
   useEffect(() => {
     if (!containerRef.current) return;
 
-    const options: Plyr.Options = {
+    const options: any = {
       controls: [
         "play-large",
         "play",
@@ -71,7 +73,6 @@ export function PlyrPlayer({ youtubeId, videoId, title }: PlyrPlayerProps) {
       captions: {
         active: true,
       },
-      tracks: [],
     };
 
     // Add subtitle track if available
@@ -89,7 +90,7 @@ export function PlyrPlayer({ youtubeId, videoId, title }: PlyrPlayerProps) {
     }
 
     // Initialize Plyr player
-    playerRef.current = new Plyr(containerRef.current, options);
+    playerRef.current = new PlyrClass(containerRef.current, options);
 
     return () => {
       if (playerRef.current) {

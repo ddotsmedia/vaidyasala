@@ -1,8 +1,15 @@
 import "server-only";
-import { Deepgram } from "@deepgram/sdk";
 import { env } from "./env";
 
-const deepgram = new Deepgram({ apiKey: env.DEEPGRAM_API_KEY });
+let deepgram: any = null;
+
+function getDeepgram(): any {
+  if (!deepgram && env.DEEPGRAM_API_KEY) {
+    const { Deepgram } = require("@deepgram/sdk");
+    deepgram = new Deepgram({ apiKey: env.DEEPGRAM_API_KEY });
+  }
+  return deepgram;
+}
 
 export interface TranscriptionResult {
   transcript: string;
@@ -33,8 +40,9 @@ export async function transcribeYoutubeVideo(youtubeId: string): Promise<Transcr
 
   try {
     const videoUrl = `https://www.youtube.com/watch?v=${youtubeId}`;
+    const dg = getDeepgram();
 
-    const response = await deepgram.listen.preRecorded.transcribeUrl(
+    const response = await dg.listen.preRecorded.transcribeUrl(
       { url: videoUrl },
       {
         model: "nova-3",
