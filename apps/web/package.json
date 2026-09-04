@@ -15,6 +15,7 @@
     "admin:create": "tsx scripts/create-admin.ts"
   },
   "dependencies": {
+    "@deepgram/sdk": "^5.9.0",
     "@hookform/resolvers": "^5.9.1",
     "@sentry/nextjs": "^10.69.0",
     "@types/mixpanel-browser": "^2.66.0",

@@ -1,23 +1,51 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Plyr from "plyr";
 import "plyr/dist/plyr.css";
 
 interface PlyrPlayerProps {
   youtubeId: string;
+  videoId?: string;
   title?: string;
 }
 
-export function PlyrPlayer({ youtubeId, title }: PlyrPlayerProps) {
+interface SubtitleData {
+  vtt: string;
+  language: string;
+}
+
+export function PlyrPlayer({ youtubeId, videoId, title }: PlyrPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<Plyr | null>(null);
+  const [subtitleData, setSubtitleData] = useState<SubtitleData | null>(null);
+
+  // Fetch subtitles if videoId is provided
+  useEffect(() => {
+    if (!videoId) return;
+
+    const fetchSubtitles = async () => {
+      try {
+        const response = await fetch(`/api/subtitles/${videoId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setSubtitleData(data);
+        } else {
+          // Start transcription job if subtitles don't exist
+          await fetch(`/api/subtitles/${videoId}`, { method: "POST" });
+        }
+      } catch (error) {
+        console.error("Failed to fetch subtitles:", error);
+      }
+    };
+
+    fetchSubtitles();
+  }, [videoId]);
 
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // Initialize Plyr player
-    playerRef.current = new Plyr(containerRef.current, {
+    const options: Plyr.Options = {
       controls: [
         "play-large",
         "play",
@@ -43,14 +71,32 @@ export function PlyrPlayer({ youtubeId, title }: PlyrPlayerProps) {
       captions: {
         active: true,
       },
-    });
+      tracks: [],
+    };
+
+    // Add subtitle track if available
+    if (subtitleData?.vtt) {
+      const subtitleBlob = new Blob([subtitleData.vtt], { type: "text/vtt" });
+      const subtitleUrl = URL.createObjectURL(subtitleBlob);
+      options.tracks = [
+        {
+          kind: "captions",
+          src: subtitleUrl,
+          srclang: subtitleData.language || "en",
+          label: "English",
+        },
+      ];
+    }
+
+    // Initialize Plyr player
+    playerRef.current = new Plyr(containerRef.current, options);
 
     return () => {
       if (playerRef.current) {
         playerRef.current.destroy();
       }
     };
-  }, [youtubeId]);
+  }, [subtitleData, youtubeId]);
 
   return (
     <div className="w-full">

@@ -101,7 +101,7 @@ export function VideoPlayer({ youtubeId, videoId, title, thumbnailUrl, startSec 
     >
       {activated ? (
         <div ref={mountRef} className="size-full">
-          <PlyrPlayer youtubeId={youtubeId} title={title} />
+          <PlyrPlayer youtubeId={youtubeId} videoId={videoId} title={title} />
         </div>
       ) : (
         <button
