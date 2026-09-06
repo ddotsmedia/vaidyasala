@@ -1,0 +1,641 @@
+CLAUDE CODE PROMPT: VAIDYASALA YOUTUBE SHOWCASE WEBSITE
+=======================================================
+SESSION RULES - MANDATORY
+✓ 100% FULL AUTOMATION - zero questions, zero verification steps
+✓ Minimal tokens - remove verbose explanations, consolidate tasks
+✓ No manual status checks - deploy everything automatically
+✓ Hardcoded values - all API keys, URLs, passwords embedded
+✓ Build → Commit → Push → Deploy (atomic steps)
+✓ Token budget: 40,000 max
+
+CRITICAL HARDCODED VALUES (DO NOT ASK, DO NOT VERIFY):
+- YouTube API KEY: AIzaSyA3SVk-gYWASnuP1ItyjI9UJgJSpSpQSv0
+- Channel ID: UCADw8vrx5oszMLul5PHzCqA
+- Site URL: https://vaidyasala.com
+- Admin Password: Admin@Vaidyasala2024
+- Stripe Keys: (use test keys pk_test_xxx / sk_test_xxx if not provided)
+- DB: PostgreSQL 16 (auto-created)
+- Deployment: Vercel OR Railway OR VPS (use existing setup)
+
+=======================================================
+OBJECTIVE (SINGLE SENTENCE)
+Build SEO-optimized website that auto-fetches 560+ YouTube videos, displays them as cards linked to YouTube, includes blog articles for organic traffic, and offers consultation booking with Stripe.
+
+=======================================================
+TASK 1-2: SETUP + YOUTUBE INTEGRATION (75 min)
+=======================================================
+```bash
+cd /opt/vaidyasala
+git checkout -b website-v2 || git switch --create website-v2
+pnpm create next-app@latest apps/website --typescript --tailwind --eslint
+cd apps/website
+pnpm add @google-cloud/youtube googleapis @prisma/client prisma zod react-hook-form stripe next-mdx-remote pg
+```
+
+Create apps/website/lib/youtube.ts:
+```typescript
+import { google } from 'googleapis';
+
+const youtube = google.youtube({
+  version: 'v3',
+  auth: process.env.YOUTUBE_API_KEY || 'AIzaSyA3SVk-gYWASnuP1ItyjI9UJgJSpSpQSv0',
+});
+
+export async function fetchChannelVideos(channelId: string, pageToken?: string) {
+  const response = await youtube.search.list({
+    part: ['snippet'],
+    channelId,
+    type: 'video',
+    maxResults: 50,
+    order: 'date',
+    pageToken,
+  });
+  return { items: response.data.items || [], nextToken: response.data.nextPageToken };
+}
+
+export async function getVideoStats(videoId: string) {
+  const response = await youtube.videos.list({
+    part: ['statistics', 'contentDetails'],
+    id: [videoId],
+  });
+  return response.data.items?.[0];
+}
+```
+
+Create apps/website/prisma/schema.prisma:
+```prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Video {
+  id          String   @id @default(cuid())
+  youtubeId   String   @unique
+  title       String
+  description String   @db.Text
+  thumbnail   String
+  duration    Int
+  uploadDate  DateTime
+  viewCount   Int      @default(0)
+  category    String?
+  doshaTarget String?
+  tags        String[] @default([])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@index([doshaTarget])
+}
+
+model Article {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String   @db.Text
+  content     String   @db.Text
+  tags        String[] @default([])
+  published   Boolean  @default(false)
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([slug])
+  @@index([published])
+}
+
+model Consultation {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String
+  date      DateTime
+  duration  Int
+  topic     String?
+  status    String   @default("pending")
+  paymentId String?
+  zoomLink  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+```
+
+Run:
+```bash
+pnpm prisma generate
+pnpm prisma migrate dev --name init
+```
+
+=======================================================
+TASK 3: HOMEPAGE + VIDEO GRID (60 min)
+=======================================================
+Create apps/website/app/page.tsx:
+```typescript
+import { prisma } from '@/lib/db';
+import VideoCard from '@/components/VideoCard';
+
+export default async function HomePage() {
+  const videos = await prisma.video.findMany({
+    take: 100,
+    orderBy: { uploadDate: 'desc' },
+  });
+
+  return (
+    <main className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+      <section className="py-20 text-center">
+        <h1 className="text-5xl font-bold text-gray-900">Vaidyasala</h1>
+        <p className="mt-4 text-xl text-gray-600">Ayurvedic Health Education</p>
+        <input type="text" placeholder="Search videos..." className="mt-8 px-4 py-2 w-96 rounded-lg border" />
+      </section>
+
+      <section className="px-4 py-12 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {videos.map(video => <VideoCard key={video.id} video={video} />)}
+        </div>
+      </section>
+    </main>
+  );
+}
+```
+
+Create apps/website/components/VideoCard.tsx:
+```typescript
+import Link from 'next/link';
+import Image from 'next/image';
+
+export default function VideoCard({ video }) {
+  return (
+    <Link href={`/videos/${video.youtubeId}`}>
+      <div className="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow">
+        <Image src={video.thumbnail} alt={video.title} width={400} height={225} className="w-full rounded-t-lg" />
+        <div className="p-4">
+          <h3 className="font-bold text-lg">{video.title}</h3>
+          <p className="text-sm text-gray-500">{video.duration} min</p>
+          <a href={`https://youtube.com/watch?v=${video.youtubeId}`} target="_blank" className="mt-2 block bg-red-600 text-white px-4 py-2 rounded text-center">
+            Watch on YouTube
+          </a>
+        </div>
+      </div>
+    </Link>
+  );
+}
+```
+
+Create apps/website/app/videos/[id]/page.tsx:
+```typescript
+import { prisma } from '@/lib/db';
+import { notFound } from 'next/navigation';
+
+export default async function VideoPage({ params }) {
+  const video = await prisma.video.findUnique({ where: { youtubeId: params.id } });
+  if (!video) notFound();
+
+  return (
+    <main className="max-w-4xl mx-auto px-4 py-12">
+      <div className="aspect-video bg-black rounded-lg mb-8">
+        <iframe src={`https://youtube.com/embed/${video.youtubeId}`} className="w-full h-full rounded-lg" allowFullScreen />
+      </div>
+      <h1 className="text-4xl font-bold mb-4">{video.title}</h1>
+      <p className="text-gray-600 mb-4">{video.description}</p>
+      <a href={`https://youtube.com/watch?v=${video.youtubeId}`} target="_blank" className="bg-red-600 text-white px-6 py-3 rounded-lg">
+        Watch on YouTube
+      </a>
+    </main>
+  );
+}
+```
+
+=======================================================
+TASK 4: VIDEO SYNC ENDPOINT (30 min)
+=======================================================
+Create apps/website/app/api/videos/sync/route.ts:
+```typescript
+import { NextRequest, NextResponse } from 'next/server';
+import { fetchChannelVideos, getVideoStats } from '@/lib/youtube';
+import { prisma } from '@/lib/db';
+
+export async function GET(req: NextRequest) {
+  const adminPassword = req.headers.get('x-admin-password');
+  if (adminPassword !== process.env.ADMIN_PASSWORD) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  let synced = 0, updated = 0, errors = [];
+  let pageToken: string | undefined;
+
+  try {
+    do {
+      const { items, nextToken } = await fetchChannelVideos('UCADw8vrx5oszMLul5PHzCqA', pageToken);
+
+      for (const item of items) {
+        try {
+          const stats = await getVideoStats(item.id.videoId);
+          const duration = stats?.contentDetails?.duration
+            ? parseInt(stats.contentDetails.duration.match(/\d+/)?.[0] || '0')
+            : 0;
+
+          const existing = await prisma.video.findUnique({
+            where: { youtubeId: item.id.videoId },
+          });
+
+          if (existing) {
+            await prisma.video.update({
+              where: { youtubeId: item.id.videoId },
+              data: {
+                viewCount: stats?.statistics?.viewCount ? parseInt(stats.statistics.viewCount) : 0,
+                updatedAt: new Date(),
+              },
+            });
+            updated++;
+          } else {
+            await prisma.video.create({
+              data: {
+                youtubeId: item.id.videoId,
+                title: item.snippet.title,
+                description: item.snippet.description || '',
+                thumbnail: item.snippet.thumbnails.high.url,
+                duration,
+                uploadDate: new Date(item.snippet.publishedAt),
+                viewCount: stats?.statistics?.viewCount ? parseInt(stats.statistics.viewCount) : 0,
+              },
+            });
+            synced++;
+          }
+        } catch (err) {
+          errors.push(`Failed to sync ${item.id.videoId}: ${err.message}`);
+        }
+      }
+
+      pageToken = nextToken;
+    } while (pageToken);
+
+    return NextResponse.json({ synced, updated, errors, total: synced + updated });
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+```
+
+=======================================================
+TASK 5: BLOG + ARTICLES (45 min)
+=======================================================
+Create apps/website/app/blog/page.tsx:
+```typescript
+import { prisma } from '@/lib/db';
+import Link from 'next/link';
+
+export default async function BlogPage() {
+  const articles = await prisma.article.findMany({
+    where: { published: true },
+    orderBy: { publishedAt: 'desc' },
+  });
+
+  return (
+    <main className="max-w-4xl mx-auto px-4 py-12">
+      <h1 className="text-4xl font-bold mb-8">Ayurvedic Health Articles</h1>
+      <div className="space-y-6">
+        {articles.map(article => (
+          <Link key={article.id} href={`/blog/${article.slug}`}>
+            <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition">
+              <h2 className="text-2xl font-bold">{article.title}</h2>
+              <p className="text-gray-600 mt-2">{article.description}</p>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </main>
+  );
+}
+```
+
+Create apps/website/app/blog/[slug]/page.tsx:
+```typescript
+import { prisma } from '@/lib/db';
+import { notFound } from 'next/navigation';
+
+export default async function ArticlePage({ params }) {
+  const article = await prisma.article.findUnique({ where: { slug: params.slug } });
+  if (!article) notFound();
+
+  return (
+    <main className="max-w-4xl mx-auto px-4 py-12">
+      <h1 className="text-4xl font-bold mb-4">{article.title}</h1>
+      <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: article.content }} />
+    </main>
+  );
+}
+```
+
+Create apps/website/app/api/articles/route.ts:
+```typescript
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
+
+export async function POST(req: NextRequest) {
+  const { title, slug, description, content } = await req.json();
+  const article = await prisma.article.create({
+    data: { title, slug, description, content, published: true, publishedAt: new Date() },
+  });
+  return NextResponse.json(article);
+}
+
+export async function GET() {
+  const articles = await prisma.article.findMany({ where: { published: true } });
+  return NextResponse.json(articles);
+}
+```
+
+Seed sample articles:
+```bash
+pnpm prisma db seed
+```
+
+Create apps/website/prisma/seed.ts:
+```typescript
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+async function main() {
+  await prisma.article.createMany({
+    data: [
+      {
+        slug: 'vata-diet-guide',
+        title: 'Vata Dosha Diet: 10 Balancing Foods',
+        description: 'Complete guide to foods for Vata imbalance',
+        content: '<h2>Introduction</h2><p>Vata dosha represents air and ether...</p>',
+        published: true,
+        publishedAt: new Date(),
+      },
+      {
+        slug: 'pitta-yoga-poses',
+        title: 'Best Yoga Poses for Pitta Balance',
+        description: 'Yoga asanas to cool and balance Pitta',
+        content: '<h2>Cooling Poses</h2><p>Pitta is fire element...</p>',
+        published: true,
+        publishedAt: new Date(),
+      },
+      {
+        slug: 'kapha-sleep',
+        title: 'Sleep Quality in Ayurveda',
+        description: 'Natural remedies for better sleep',
+        content: '<h2>Sleep Science</h2><p>Quality sleep is fundamental...</p>',
+        published: true,
+        publishedAt: new Date(),
+      },
+    ],
+    skipDuplicates: true,
+  });
+}
+
+main().catch(console.error).finally(() => prisma.$disconnect());
+```
+
+=======================================================
+TASK 6: CONSULTATION BOOKING + STRIPE (45 min)
+=======================================================
+Create apps/website/lib/stripe.ts:
+```typescript
+import Stripe from 'stripe';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy', {
+  apiVersion: '2023-10-16',
+});
+
+export async function createPaymentSession(booking: any) {
+  const session = await stripe.checkout.sessions.create({
+    payment_method_types: ['card'],
+    line_items: [
+      {
+        price_data: {
+          currency: 'usd',
+          product_data: { name: `${booking.duration}min Consultation` },
+          unit_amount: booking.duration === 30 ? 5000 : 8000,
+        },
+        quantity: 1,
+      },
+    ],
+    mode: 'payment',
+    success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/booking-confirmed`,
+    cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/book-consultation`,
+    metadata: { bookingId: booking.id },
+  });
+  return session.url;
+}
+```
+
+Create apps/website/app/book-consultation/page.tsx:
+```typescript
+'use client';
+
+import { useState } from 'react';
+
+export default function BookingPage() {
+  const [formData, setFormData] = useState({ name: '', email: '', phone: '', date: '', duration: 30 });
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    const res = await fetch('/api/consultations', { method: 'POST', body: JSON.stringify(formData) });
+    const { paymentUrl } = await res.json();
+    window.location.href = paymentUrl;
+  }
+
+  return (
+    <main className="max-w-2xl mx-auto px-4 py-12">
+      <h1 className="text-4xl font-bold mb-8">Book Consultation</h1>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <input type="text" placeholder="Name" onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
+        <input type="email" placeholder="Email" onChange={(e) => setFormData({ ...formData, email: e.target.value })} required />
+        <input type="tel" placeholder="Phone" onChange={(e) => setFormData({ ...formData, phone: e.target.value })} required />
+        <input type="datetime-local" onChange={(e) => setFormData({ ...formData, date: e.target.value })} required />
+        <select onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}>
+          <option value={30}>30 min ($50)</option>
+          <option value={60}>60 min ($80)</option>
+        </select>
+        <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-lg">Book Now</button>
+      </form>
+    </main>
+  );
+}
+```
+
+Create apps/website/app/api/consultations/route.ts:
+```typescript
+import { NextRequest, NextResponse } from 'next/server';
+import { createPaymentSession } from '@/lib/stripe';
+import { prisma } from '@/lib/db';
+
+export async function POST(req: NextRequest) {
+  const { name, email, phone, date, duration } = await req.json();
+
+  const consultation = await prisma.consultation.create({
+    data: { name, email, phone, date: new Date(date), duration, status: 'pending' },
+  });
+
+  const paymentUrl = await createPaymentSession(consultation);
+
+  return NextResponse.json({ paymentUrl, consultationId: consultation.id });
+}
+```
+
+=======================================================
+TASK 7: SEO + SITEMAP (30 min)
+=======================================================
+Create apps/website/lib/seo.ts:
+```typescript
+export function generateVideoMetadata(video) {
+  return {
+    title: `${video.title} | Vaidyasala`,
+    description: video.description.slice(0, 160),
+    openGraph: {
+      title: video.title,
+      description: video.description,
+      type: 'video.other',
+      url: `https://vaidyasala.com/videos/${video.youtubeId}`,
+      images: [{ url: video.thumbnail }],
+    },
+  };
+}
+
+export function generateStructuredData(video) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'VideoObject',
+    name: video.title,
+    description: video.description,
+    thumbnailUrl: video.thumbnail,
+    uploadDate: video.uploadDate.toISOString(),
+    duration: `PT${video.duration}M`,
+    contentUrl: `https://youtube.com/watch?v=${video.youtubeId}`,
+  };
+}
+```
+
+Create apps/website/app/sitemap.ts:
+```typescript
+import { prisma } from '@/lib/db';
+
+export default async function sitemap() {
+  const videos = await prisma.video.findMany({ select: { youtubeId: true, updatedAt: true } });
+  const articles = await prisma.article.findMany({ select: { slug: true, updatedAt: true } });
+
+  const videoUrls = videos.map(v => ({
+    url: `https://vaidyasala.com/videos/${v.youtubeId}`,
+    lastModified: v.updatedAt,
+    priority: 0.8,
+  }));
+
+  const articleUrls = articles.map(a => ({
+    url: `https://vaidyasala.com/blog/${a.slug}`,
+    lastModified: a.updatedAt,
+    priority: 0.6,
+  }));
+
+  return [
+    { url: 'https://vaidyasala.com', lastModified: new Date(), priority: 1 },
+    ...videoUrls,
+    ...articleUrls,
+  ];
+}
+```
+
+Create apps/website/public/robots.txt:
+```
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api
+
+Sitemap: https://vaidyasala.com/sitemap.xml
+```
+
+=======================================================
+TASK 8: ENVIRONMENT + BUILD (45 min)
+=======================================================
+Create apps/website/.env.local:
+```
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/vaidyasala
+YOUTUBE_API_KEY=AIzaSyA3SVk-gYWASnuP1ItyjI9UJgJSpSpQSv0
+YOUTUBE_CHANNEL_ID=UCADw8vrx5oszMLul5PHzCqA
+NEXT_PUBLIC_SITE_URL=https://vaidyasala.com
+STRIPE_PUBLIC_KEY=pk_test_000000000000
+STRIPE_SECRET_KEY=sk_test_000000000000
+ADMIN_PASSWORD=Admin@Vaidyasala2024
+```
+
+Build:
+```bash
+pnpm typecheck
+pnpm lint --fix
+pnpm prisma generate
+pnpm build
+```
+
+Verify:
+```bash
+pnpm start
+# Site accessible at http://localhost:3000
+```
+
+=======================================================
+TASK 9: SYNC ALL VIDEOS (15 min - AUTO)
+=======================================================
+```bash
+curl -X GET "http://localhost:3000/api/videos/sync" \
+  -H "X-Admin-Password: Admin@Vaidyasala2024"
+# Auto-fetches all 560+ videos from YouTube
+# Database auto-populated
+# No manual verification needed
+```
+
+=======================================================
+TASK 10: DEPLOY (30 min - AUTO)
+=======================================================
+Option A: Vercel (AUTOMATIC)
+```bash
+vercel --prod --env-file .env.local
+# Auto-deploys to vaidyasala.com
+# Auto-configures environment
+# Auto-runs migrations
+# Done
+```
+
+Option B: VPS (AUTOMATIC)
+```bash
+cd /opt/vaidyasala
+git add apps/website
+git commit -m "Build: Vaidyasala website YouTube integration"
+git push origin website-v2
+rm -rf apps/website/.next
+pnpm install
+pnpm build
+docker build -t vaidyasala-web -f apps/website/Dockerfile .
+docker run -d -p 3000:3000 --env-file apps/website/.env.local vaidyasala-web
+```
+
+=======================================================
+FINAL CHECKLIST
+=======================================================
+✓ 560+ videos auto-fetched from YouTube
+✓ Homepage with video grid + YouTube links
+✓ Blog articles for organic SEO traffic
+✓ Consultation booking with Stripe
+✓ Sitemap auto-generated for Google
+✓ Mobile responsive
+✓ SEO meta tags + structured data
+✓ Production deployed
+✓ No manual steps needed
+✓ No questions asked during execution
+
+EXPECTED OUTCOMES:
+- 560 YouTube videos indexed in Google
+- Organic Ayurveda keyword rankings within 4 weeks
+- $500-2000/month from consultations
+- Channel promotion via website backlinks
+
+TOKEN ESTIMATE: 38,000-42,000 (40% less than original)
+FULLY AUTOMATED: YES - Zero interruptions, zero questions

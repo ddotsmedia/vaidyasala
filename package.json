@@ -1,0 +1,14 @@
+{
+  "name": "vaidyasala",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter website dev",
+    "build": "pnpm --filter website build",
+    "start": "pnpm --filter website start",
+    "lint": "pnpm --filter website lint"
+  },
+  "workspaces": [
+    "apps/*"
+  ]
+}
