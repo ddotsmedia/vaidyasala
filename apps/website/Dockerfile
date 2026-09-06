@@ -1,22 +1,56 @@
-FROM node:20-alpine AS deps
+# Vaidyasala Next.js Dockerfile
+# Multi-stage build for optimal image size
+
+FROM node:22-alpine AS builder
+
 WORKDIR /app
+
+# Install dependencies
 COPY package.json pnpm-lock.yaml ./
 RUN npm install -g pnpm && pnpm install --frozen-lockfile
 
-FROM node:20-alpine AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-RUN npm install -g pnpm && pnpm prisma generate && pnpm build
+# Copy source code
+COPY apps/website ./apps/website
+COPY packages ./packages
 
-FROM node:20-alpine AS runner
+# Build Next.js application
+WORKDIR /app/apps/website
+RUN pnpm prisma generate
+RUN pnpm build
+
+# Production image
+FROM node:22-alpine
+
 WORKDIR /app
-ENV NODE_ENV production
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/prisma ./prisma
+
+# Install runtime dependencies only
+RUN npm install -g pnpm
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --prod --frozen-lockfile
+
+# Copy built application from builder
+COPY --from=builder /app/apps/website/.next /app/apps/website/.next
+COPY --from=builder /app/apps/website/public /app/apps/website/public
+COPY --from=builder /app/apps/website/package.json /app/apps/website/
+COPY --from=builder /app/packages ./packages
+COPY apps/website/prisma ./apps/website/prisma
+
+WORKDIR /app/apps/website
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001
+
+# Fix ownership
+RUN chown -R nextjs:nodejs /app
+
+USER nextjs
 
 EXPOSE 3000
-CMD ["node", "server.js"]
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:3000', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
+
+# Run Next.js
+CMD ["node_modules/.bin/next", "start"]

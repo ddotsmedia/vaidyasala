@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: vaidhyasala-postgres
+    environment:
+      POSTGRES_USER: vaidyasala
+      POSTGRES_PASSWORD: Vaidyasala@2024SecurePassword
+      POSTGRES_DB: vaidhyasala
+      POSTGRES_INITDB_ARGS: "-c shared_preload_libraries=pgvector"
+    ports:
+      - "127.0.0.1:5434:5432"
+    volumes:
+      - vaidhyasala_web_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vaidyasala"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - vaidhyasala-net
+    restart: unless-stopped
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: vaidhyasala-redis
+    ports:
+      - "127.0.0.1:6382:6379"
+    volumes:
+      - vaidhyasala_web_redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - vaidhyasala-net
+    restart: unless-stopped
+
+  # Next.js Web Application
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vaidhyasala-web
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://vaidyasala:Vaidyasala@2024SecurePassword@postgres:5432/vaidhyasala
+      REDIS_URL: redis://redis:6379
+      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY:-AIzaSyA3SVk-gYWASnuP1ItyjI9UJgJSpSpQSv0}
+      YOUTUBE_CHANNEL_ID: ${YOUTUBE_CHANNEL_ID:-UCADw8vrx5oszMLul5PHzCqA}
+      NEXT_PUBLIC_SITE_URL: https://vaidhyasala.com
+      STRIPE_PUBLIC_KEY: ${STRIPE_PUBLIC_KEY:-pk_test_000000000000}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-sk_test_000000000000}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Admin@Vaidyasala2024}
+    ports:
+      - "127.0.0.1:3001:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./apps/website/public:/app/public
+    networks:
+      - vaidhyasala-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  vaidhyasala_web_pgdata:
+    driver: local
+  vaidhyasala_web_redisdata:
+    driver: local
+
+networks:
+  vaidhyasala-net:
+    driver: bridge

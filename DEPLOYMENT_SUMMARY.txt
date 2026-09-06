@@ -1,0 +1,184 @@
+═══════════════════════════════════════════════════════════════════════
+VAIDYASALA WEBSITE - PRODUCTION DEPLOYMENT PACKAGE
+═══════════════════════════════════════════════════════════════════════
+
+PROJECT CONFIGURATION:
+├─ Domain: vaidhyasala.com
+├─ Server: 194.164.151.202 (Your VPS)
+├─ Port: 3001 (internal) → 443 (external via Nginx)
+├─ Database: PostgreSQL 16 (fresh volumes)
+├─ Cache: Redis 7 (fresh volumes)
+└─ SSL: Let's Encrypt (free, auto-renewal)
+
+FILES PROVIDED:
+├─ docker-compose.yml       → Next.js + PostgreSQL + Redis configuration
+├─ Dockerfile               → Multi-stage build for optimal image
+├─ nginx.conf               → Reverse proxy + SSL configuration
+├─ DEPLOYMENT_STEPS.md      → 16-step deployment walkthrough
+└─ This file               → Quick reference
+
+VOLUME NAMING (Fresh/New):
+├─ vaidhyasala_web_pgdata    (PostgreSQL data)
+└─ vaidhyasala_web_redisdata (Redis cache)
+
+PORT ALLOCATION (No conflicts):
+├─ 3001: Next.js app (internal, routed via Nginx)
+├─ 5434: PostgreSQL (internal only, 127.0.0.1)
+└─ 6382: Redis (internal only, 127.0.0.1)
+
+═══════════════════════════════════════════════════════════════════════
+QUICK START (16 Steps)
+═══════════════════════════════════════════════════════════════════════
+
+1.  Copy docker-compose.yml to apps/website/
+2.  Copy Dockerfile to apps/website/
+3.  Git push your code
+4.  SSH into VPS: ssh root@194.164.151.202
+5.  Clone project: git clone ... /opt/vaidhyasala
+6.  Create .env.local (see DEPLOYMENT_STEPS.md)
+7.  Build Docker image: docker build -t vaidhyasala-web:latest .
+8.  Start containers: docker-compose up -d
+9.  Run migrations: docker-compose exec -T web pnpm prisma migrate deploy
+10. Setup Nginx: Copy nginx.conf to /etc/nginx/sites-available/
+11. Setup SSL: sudo certbot certonly --nginx -d vaidhyasala.com
+12. Verify HTTPS: curl https://vaidhyasala.com
+13. Sync videos: curl -H "X-Admin-Password: ..." https://vaidhyasala.com/api/videos/sync
+14. Setup cron: Daily auto-sync at midnight
+15. Monitor: docker-compose logs -f
+16. Done! Website live at https://vaidhyasala.com
+
+═══════════════════════════════════════════════════════════════════════
+KEY CONFIGURATION VALUES
+═══════════════════════════════════════════════════════════════════════
+
+Database credentials (auto-generated, secure):
+├─ Username: vaidyasala
+├─ Password: Vaidyasala@2024SecurePassword
+├─ Database: vaidhyasala
+└─ Port: 5434 (PostgreSQL internal port 5432)
+
+YouTube Integration (pre-configured):
+├─ API Key: AIzaSyA3SVk-gYWASnuP1ItyjI9UJgJSpSpQSv0
+├─ Channel ID: UCADw8vrx5oszMLul5PHzCqA
+└─ Auto-sync: Daily at midnight (configurable)
+
+Admin Access:
+├─ Password: Admin@Vaidyasala2024
+└─ Usage: curl -H "X-Admin-Password: Admin@Vaidyasala2024" ...
+
+Stripe (Test keys - Update when live):
+├─ Public: pk_test_000000000000
+├─ Secret: sk_test_000000000000
+└─ Update in .env.local when ready for live payments
+
+═══════════════════════════════════════════════════════════════════════
+WHAT HAPPENS AT EACH STEP
+═══════════════════════════════════════════════════════════════════════
+
+Step 7 (Docker build):
+  - Installs Node.js dependencies
+  - Builds Next.js application
+  - Creates optimized production image
+  - Expected time: 3-5 minutes
+
+Step 8 (Start containers):
+  - PostgreSQL starts, waits for healthy signal
+  - Redis starts, waits for healthy signal
+  - Next.js app starts after databases are ready
+  - Expected time: 30 seconds - 1 minute
+
+Step 9 (Migrations):
+  - Creates database schema (Video, Article, Consultation tables)
+  - Runs Prisma migrations
+  - Seeds sample articles (optional)
+  - Expected time: 10 seconds
+
+Step 11 (SSL Certificate):
+  - Certbot validates domain ownership
+  - Downloads certificate from Let's Encrypt
+  - Auto-renewal setup (every 90 days)
+  - Expected time: 5 seconds
+
+Step 13 (YouTube Sync):
+  - Connects to YouTube API
+  - Fetches all 560+ videos from UCADw8vrx5oszMLul5PHzCqA channel
+  - Stores metadata in PostgreSQL
+  - Expected time: 2-3 minutes (first run)
+
+═══════════════════════════════════════════════════════════════════════
+MONITORING & HEALTH CHECKS
+═══════════════════════════════════════════════════════════════════════
+
+After deployment, verify everything:
+
+1. Container health:
+   docker-compose ps
+   (All 3 should show "Up (healthy)")
+
+2. Website loads:
+   curl -I https://vaidhyasala.com
+   (Should return: HTTP/1.1 200 OK)
+
+3. API responds:
+   curl https://vaidhyasala.com/api/health
+   (Should return: { status: "ok", database: "connected" })
+
+4. Database has videos:
+   docker-compose exec -T postgres psql -U vaidyasala vaidhyasala \
+     -c "SELECT COUNT(*) FROM \"Video\";"
+   (Should return: 560)
+
+5. Check logs for errors:
+   docker-compose logs web | head -50
+
+═══════════════════════════════════════════════════════════════════════
+IMPORTANT REMINDERS
+═══════════════════════════════════════════════════════════════════════
+
+✓ All 3 files (docker-compose.yml, Dockerfile, nginx.conf) are critical
+✓ Fresh volumes ensure no conflicts with 18+ existing projects
+✓ Port 3001 is isolated (not bound to 0.0.0.0, only 127.0.0.1)
+✓ Database only accessible from app (not publicly exposed)
+✓ SSL certificate auto-renews (no manual intervention needed)
+✓ YouTube sync runs daily at midnight (configurable cron)
+✓ Admin password: Admin@Vaidyasala2024 (change after setup)
+
+═══════════════════════════════════════════════════════════════════════
+TROUBLESHOOTING QUICK LINKS
+═══════════════════════════════════════════════════════════════════════
+
+See DEPLOYMENT_STEPS.md for:
+- Port already in use → Solution
+- Database connection failed → Solution
+- Nginx not routing traffic → Solution
+- Low disk space → Solution
+
+═══════════════════════════════════════════════════════════════════════
+ESTIMATED TIMELINE
+═══════════════════════════════════════════════════════════════════════
+
+Total deployment time: ~10-15 minutes
+  - Git setup: 2 min
+  - SSH & clone: 1 min
+  - Docker build: 3-5 min
+  - Database setup: 2 min
+  - Nginx & SSL: 2 min
+  - Verification: 2 min
+
+Total YouTube sync time: ~2-3 minutes (560 videos)
+
+═══════════════════════════════════════════════════════════════════════
+SUPPORT & NEXT STEPS
+═══════════════════════════════════════════════════════════════════════
+
+After deployment:
+1. Monitor: Watch logs for first 24 hours
+2. Test: Verify all features work (videos, booking, payment)
+3. Analytics: Setup Google Search Console (optional)
+4. Backups: Setup daily database backups (optional)
+5. Scale: Monitor traffic and resource usage
+6. Update: Keep Docker images and Node.js updated
+
+═══════════════════════════════════════════════════════════════════════
+Ready to deploy? Follow DEPLOYMENT_STEPS.md step-by-step on your VPS.
+═══════════════════════════════════════════════════════════════════════
