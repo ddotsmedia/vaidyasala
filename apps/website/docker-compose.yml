@@ -43,8 +43,9 @@ services:
   # Next.js Web Application
   web:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: apps/website/Dockerfile
+    image: vaidhyasala-web:latest
     container_name: vaidhyasala-web
     environment:
       NODE_ENV: production
@@ -57,7 +58,7 @@ services:
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-sk_test_000000000000}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Admin@Vaidyasala2024}
     ports:
-      - "127.0.0.1:3001:3000"
+      - "127.0.0.1:3015:3000"
     depends_on:
       postgres:
         condition: service_healthy
