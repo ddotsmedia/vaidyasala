@@ -1,0 +1,466 @@
+═══════════════════════════════════════════════════════════════════════════════
+CLAUDE CODE PROMPT: VAIDYASALA ENHANCEMENTS - TOP 5 FEATURES
+═══════════════════════════════════════════════════════════════════════════════
+
+SESSION RULES:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✓ 100% FULLY AUTOMATED - ZERO QUESTIONS
+✓ MINIMAL CLAUDE TOKEN USAGE - Optimize code, skip verbose explanations
+✓ HARDCODED ALL VALUES - No user input needed
+✓ PRODUCTION READY - All code tested and deployable
+✓ INCREMENTAL BUILDS - Build features in order, test each one
+✓ GIT COMMITS - Commit after each feature completes
+✓ NO EXPLANATIONS - Show code, not conversation
+✓ ERRORS FATAL - Exit immediately on any error, show error only
+
+PROJECT CONTEXT:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Project: Vaidyasala (YouTube channel showcase + health consultation)
+Live Domain: https://vaidhyasala.com
+VPS: 194.164.151.202
+Database: PostgreSQL 16
+Cache: Redis 7
+Framework: Next.js 14 + TypeScript
+Auth: NextAuth.js v4.24.10
+ORM: Prisma 5.7+
+Styling: Tailwind CSS
+Deployment: Docker + Nginx + Let's Encrypt
+
+GitHub Repo: https://github.com/Ddotsmedia/Vaidyasala
+Deploy Location: /opt/vaidhyasala/apps/website
+Database Creds:
+  User: vaidyasala
+  Pass: Vaidyasala@2024SecurePassword
+  DB: vaidhyasala
+  Host: localhost:5434 (internal)
+Redis: localhost:6382 (internal)
+Admin Password: Admin@Vaidyasala2024
+
+═══════════════════════════════════════════════════════════════════════════════
+TASK: BUILD TOP 5 ENHANCEMENT FEATURES
+═══════════════════════════════════════════════════════════════════════════════
+
+FEATURE 1: USER ACCOUNTS & AUTHENTICATION (Days 1-2)
+────────────────────────────────────────────────────────────────────────────────
+GOAL: Enable user registration, login, profiles, saved content
+
+IMPLEMENTATION:
+1. Create Prisma schema additions:
+   - User model (email, password hash, name, avatar, created_at)
+   - UserProfile model (bio, phone, location, preferences)
+   - SavedVideo model (user_id, video_id, saved_at)
+   - WatchHistory model (user_id, video_id, watched_at, duration_watched)
+
+2. Setup NextAuth.js:
+   - Configure email/password provider
+   - Setup Google OAuth provider
+   - Configure Facebook OAuth provider
+   - Setup JWT strategy
+   - Create .env vars: NEXTAUTH_SECRET, NEXTAUTH_URL, GOOGLE_CLIENT_ID, etc.
+
+3. Create pages:
+   - /auth/register - Registration form with email verification
+   - /auth/login - Login form
+   - /auth/forgot-password - Password reset
+   - /dashboard - User dashboard with saved videos
+   - /profile - Edit user profile
+   - /settings - User preferences
+
+4. Create API routes:
+   - POST /api/auth/register - Register user
+   - POST /api/auth/login - Login user
+   - POST /api/auth/logout - Logout
+   - GET /api/user/profile - Get current user
+   - PUT /api/user/profile - Update profile
+   - POST /api/user/save-video - Save video
+   - GET /api/user/saved-videos - Get saved videos
+   - POST /api/user/watch-history - Track watch history
+
+5. Database migrations:
+   - Create User table with indexes on email
+   - Create UserProfile table
+   - Create SavedVideo table with composite index
+   - Create WatchHistory table
+   - Add user_id foreign keys
+
+6. Testing:
+   - Test registration flow
+   - Test login/logout
+   - Test profile updates
+   - Test saving videos
+   - Verify database constraints
+
+7. Deploy:
+   - Run migrations on production
+   - Test on https://vaidhyasala.com/auth/register
+   - Git commit with message: "feat: User accounts and authentication"
+
+DELIVERABLES:
+- NextAuth.js configured
+- 7 new pages created
+- 8 API endpoints working
+- Database migrations applied
+- /dashboard accessible for logged-in users
+
+SUCCESS CRITERIA:
+✓ User can register with email
+✓ User can login with email/Google/Facebook
+✓ User profile editable
+✓ Can save videos to account
+✓ Watch history tracked
+✓ No errors in production logs
+
+───────────────────────────────────────────────────────────────────────────────
+
+FEATURE 2: ADVANCED VIDEO SEARCH & FILTERING (Days 3-4)
+────────────────────────────────────────────────────────────────────────────────
+GOAL: Full-text search, filter by duration/date/category, video metadata
+
+IMPLEMENTATION:
+1. Database enhancements:
+   - Add full-text search index on Video.title and Video.description
+   - Add columns: duration (integer), category (string), language (string)
+   - Add indexes: category, publishedAt, duration
+
+2. Seed video data:
+   - Add duration to all 560 videos (from YouTube API)
+   - Categorize videos (extract from description/title)
+   - Add language detection
+
+3. Create search API:
+   - GET /api/videos/search?q=yoga&duration=30&category=yoga&sort=popular
+   - Implement pagination (limit 20 per page)
+   - Return: id, title, thumbnail, duration, category, views
+   - Filter by: duration range, category, date range, language
+
+4. Create frontend components:
+   - /search page with search bar + filters
+   - SearchFilters component (duration slider, category select, date range)
+   - VideoGrid component (render search results)
+   - Sort options: relevance, newest, popular, duration
+
+5. Add video chapters/timestamps:
+   - Extract chapters from YouTube description
+   - Store in Video.chapters (JSON field)
+   - Display on video detail page
+   - Link to YouTube timestamp
+
+6. Add related videos:
+   - GET /api/videos/related?videoId=xxx
+   - Find videos with same category
+   - Limit to 5 results
+
+7. Testing:
+   - Test search with different queries
+   - Test filters (duration, category, date)
+   - Test pagination
+   - Test related videos
+
+8. Deploy:
+   - Run migrations
+   - Seed video data with duration/category
+   - Test on https://vaidhyasala.com/search
+   - Git commit: "feat: Advanced video search and filtering"
+
+DELIVERABLES:
+- Full-text search working
+- 4 filter types (duration, category, date, language)
+- Search page with UI
+- Related videos feature
+- Video chapters extracted
+
+SUCCESS CRITERIA:
+✓ Search returns relevant videos
+✓ All filters work together
+✓ Pagination working
+✓ Related videos showing
+✓ Chapters displaying on video page
+✓ No slow queries (< 500ms)
+
+───────────────────────────────────────────────────────────────────────────────
+
+FEATURE 3: TELEMEDICINE VIDEO CONSULTATIONS (Days 5-8)
+────────────────────────────────────────────────────────────────────────────────
+GOAL: Real-time video calls for consultations, replacing Stripe payments
+
+IMPLEMENTATION:
+1. Database schema:
+   - Consultation model with fields: user_id, doctor_id, scheduledTime,
+     status (pending/confirmed/completed/cancelled), notes, roomId
+   - ConsultationNotes model: consultation_id, notes, createdAt
+
+2. Integrate Jitsi Meet (free open-source):
+   - No API keys needed, use room IDs
+   - Rooms auto-create at: meet.jit.si/vaidhyasala-{roomId}
+   - Each consultation gets unique roomId
+
+3. Update booking flow:
+   - Remove Stripe payment step
+   - Add video room generation
+   - Send Jitsi room link to user + doctor
+
+4. Create API endpoints:
+   - POST /api/consultations/book - Create consultation
+   - GET /api/consultations/upcoming - Get user's upcoming consultations
+   - GET /api/consultations/{id}/room - Get Jitsi room details
+   - PUT /api/consultations/{id}/status - Update status
+   - POST /api/consultations/{id}/notes - Save consultation notes
+
+5. Create pages:
+   - /consultation/book - Booking form (date/time selector)
+   - /consultation/waiting - Waiting room before video call
+   - /consultation/{id}/room - Jitsi embedded video room
+   - /consultation/history - Past consultations
+   - /consultation/{id}/notes - View/edit consultation notes
+
+6. Email notifications:
+   - Confirmation email with Jitsi link
+   - 24h reminder email
+   - 1h reminder email
+   - Post-consultation follow-up
+
+7. Testing:
+   - Test booking flow
+   - Test video room creation
+   - Test email sending
+   - Test status updates
+
+8. Deploy:
+   - Run migrations
+   - Remove Stripe integration (or keep for future premium features)
+   - Test booking at https://vaidhyasala.com/consultation/book
+   - Git commit: "feat: Telemedicine video consultations with Jitsi"
+
+DELIVERABLES:
+- Booking system without payment
+- Jitsi video room integration
+- Email notifications (3 types)
+- Consultation notes
+- 6 new pages
+- Past consultations history
+
+SUCCESS CRITERIA:
+✓ Can book consultation
+✓ Jitsi room creates correctly
+✓ Video call works
+✓ Emails send on time
+✓ Notes save and display
+✓ Status updates working
+
+───────────────────────────────────────────────────────────────────────────────
+
+FEATURE 4: EMAIL MARKETING AUTOMATION (Days 9-10)
+────────────────────────────────────────────────────────────────────────────────
+GOAL: Newsletter, drip campaigns, user engagement emails
+
+IMPLEMENTATION:
+1. Database schema:
+   - EmailTemplate model: name, subject, htmlContent, variables
+   - EmailCampaign model: name, template_id, scheduledTime, status
+   - UserEmailPreference model: user_id, newsletter, promotions, reminders
+
+2. Integrate SendGrid:
+   - Setup SendGrid API key: hardcoded in .env.local
+   - Create email templates in SendGrid dashboard (manual, one-time)
+   - Or store templates in database as HTML
+
+3. Create email templates:
+   - Welcome email (new user)
+   - Weekly newsletter (Friday 10am IST)
+   - Video upload notification
+   - Consultation reminder (24h, 1h before)
+   - Special offers / promotions
+   - Consultation follow-up
+
+4. Create email service:
+   - /lib/email.ts - SendGrid client
+   - Functions: sendEmail(), sendTemplate(), sendBulk()
+   - Queue implementation using Bull Queue
+
+5. Create API endpoints:
+   - POST /api/newsletter/subscribe - Subscribe to newsletter
+   - POST /api/newsletter/unsubscribe - Unsubscribe
+   - GET /api/newsletter/preferences - Get user preferences
+   - PUT /api/newsletter/preferences - Update preferences
+
+6. Setup scheduled jobs (Bull Queue):
+   - Weekly newsletter (Friday 10:00 AM)
+   - Daily digest (8:00 AM)
+   - Consultation reminders (24h, 1h before)
+
+7. Create admin pages:
+   - /admin/newsletters - Create/send campaigns
+   - /admin/templates - Manage email templates
+   - /admin/analytics - Email open/click tracking
+
+8. Testing:
+   - Send test emails
+   - Verify SendGrid integration
+   - Test scheduled jobs
+   - Check email deliverability
+
+9. Deploy:
+   - Setup SendGrid API key
+   - Configure Bull Queue with Redis
+   - Start background job workers
+   - Test at https://vaidhyasala.com/newsletter/subscribe
+   - Git commit: "feat: Email marketing automation"
+
+DELIVERABLES:
+- SendGrid integration
+- 6 email templates
+- Newsletter subscription
+- Scheduled email jobs
+- Email preferences
+- Analytics dashboard
+
+SUCCESS CRITERIA:
+✓ Emails send via SendGrid
+✓ Subscribe/unsubscribe working
+✓ Scheduled jobs running
+✓ Admin can create campaigns
+✓ Email delivery > 95%
+✓ No unsubscribe spam complaints
+
+───────────────────────────────────────────────────────────────────────────────
+
+FEATURE 5: ANALYTICS DASHBOARD (Days 11-12)
+────────────────────────────────────────────────────────────────────────────────
+GOAL: Track user behavior, video performance, conversion metrics
+
+IMPLEMENTATION:
+1. Database schema:
+   - PageView model: userId, page, timestamp, duration
+   - VideoView model: userId, videoId, watchedPercentage, timestamp
+   - ConversionEvent model: userId, eventType, timestamp, metadata
+
+2. Create analytics service:
+   - /lib/analytics.ts - Track events
+   - Functions: trackPageView(), trackVideoView(), trackConversion()
+   - Send to database (not external service)
+
+3. Frontend tracking:
+   - useAnalytics hook for page views
+   - Video player tracking (watch percentage)
+   - Button click tracking (booking, consultation)
+   - Search tracking (queries, results)
+
+4. Create analytics API:
+   - GET /api/analytics/overview - DAU, MAU, pageviews
+   - GET /api/analytics/videos - Top videos, watch time
+   - GET /api/analytics/funnels - Signup → Booking conversion
+   - GET /api/analytics/retention - User retention metrics
+   - GET /api/analytics/geography - User location (from IP)
+
+5. Create dashboard pages:
+   - /admin/analytics - Main dashboard
+   - /admin/analytics/videos - Video performance
+   - /admin/analytics/users - User metrics
+   - /admin/analytics/funnels - Conversion funnels
+   - /admin/analytics/reports - Generate reports
+
+6. Dashboard components:
+   - KPI cards (DAU, MAU, booking rate)
+   - Line charts (trends over time)
+   - Bar charts (top videos)
+   - Funnel chart (signup → consultation)
+   - Geographic heatmap (if location data available)
+
+7. Testing:
+   - Verify tracking works on all pages
+   - Test analytics queries
+   - Check dashboard loads quickly
+   - Validate metrics
+
+8. Deploy:
+   - No API keys needed (internal database)
+   - Test at https://vaidhyasala.com/admin/analytics
+   - Git commit: "feat: Analytics dashboard and user tracking"
+
+DELIVERABLES:
+- Analytics tracking service
+- 5 API endpoints
+- Admin analytics dashboard
+- 5+ metrics visualized
+- Event tracking on all pages
+- User retention metrics
+
+SUCCESS CRITERIA:
+✓ Page views tracked
+✓ Video watch time tracked
+✓ Booking conversions tracked
+✓ Dashboard shows metrics
+✓ Data queries fast (< 1s)
+✓ No analytics lag > 1 minute
+
+═══════════════════════════════════════════════════════════════════════════════
+EXECUTION ORDER & COMMITS
+═══════════════════════════════════════════════════════════════════════════════
+
+Day 1-2: Feature 1 (User Accounts)
+  → commit: "feat: User accounts and authentication"
+
+Day 3-4: Feature 2 (Video Search)
+  → commit: "feat: Advanced video search and filtering"
+
+Day 5-8: Feature 3 (Telemedicine)
+  → commit: "feat: Telemedicine video consultations"
+
+Day 9-10: Feature 4 (Email Marketing)
+  → commit: "feat: Email marketing automation"
+
+Day 11-12: Feature 5 (Analytics)
+  → commit: "feat: Analytics dashboard and tracking"
+
+Final: Deploy to production
+  → git push to main branch
+  → Run: docker-compose restart
+  → Test: https://vaidhyasala.com/auth/register
+
+═══════════════════════════════════════════════════════════════════════════════
+CRITICAL RULES FOR EXECUTION
+═══════════════════════════════════════════════════════════════════════════════
+
+✓ NO QUESTIONS - All values hardcoded, proceed without asking
+✓ NO VERBOSE OUTPUT - Show errors only, skip explanations
+✓ MINIMAL TOKENS - Use concise code, no comments, compress output
+✓ GIT COMMITS - After each feature, before deployment
+✓ TEST EACH FEATURE - Before moving to next feature
+✓ DATABASE MIGRATIONS - Run immediately after schema changes
+✓ ENV VARIABLES - Use .env.local, don't hardcode secrets
+✓ ERRORS FATAL - Exit on ANY error, show error trace only
+✓ PRODUCTION READY - Code must be deployment-ready
+✓ NO BREAKING CHANGES - Keep existing features working
+
+═══════════════════════════════════════════════════════════════════════════════
+ENVIRONMENT VARIABLES (HARDCODED)
+═══════════════════════════════════════════════════════════════════════════════
+
+DATABASE_URL=postgresql://vaidyasala:Vaidyasala@2024SecurePassword@postgres:5432/vaidhyasala
+REDIS_URL=redis://redis:6379
+NEXTAUTH_SECRET=vaidhyasala_secret_key_2024_change_in_prod
+NEXTAUTH_URL=https://vaidhyasala.com
+GOOGLE_CLIENT_ID=your_google_id
+GOOGLE_CLIENT_SECRET=your_google_secret
+FACEBOOK_CLIENT_ID=your_facebook_id
+FACEBOOK_CLIENT_SECRET=your_facebook_secret
+SENDGRID_API_KEY=your_sendgrid_key
+ADMIN_PASSWORD=Admin@Vaidyasala2024
+
+═══════════════════════════════════════════════════════════════════════════════
+SUCCESS METRICS
+═══════════════════════════════════════════════════════════════════════════════
+
+After all 5 features complete:
+✓ 30+ new pages created
+✓ 40+ new API endpoints
+✓ 8 database tables added
+✓ User engagement increased
+✓ All features tested in production
+✓ 0 breaking changes
+✓ Zero downtime deployment
+✓ All commits pushed to GitHub
+
+═══════════════════════════════════════════════════════════════════════════════
+END OF PROMPT
+═══════════════════════════════════════════════════════════════════════════════

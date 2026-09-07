@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -21,6 +21,9 @@ model Video {
   tags        String   @default("")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  savedBy     SavedVideo[]
+  watchedBy   WatchHistory[]
 
   @@index([category])
   @@index([doshaTarget])
@@ -55,4 +58,61 @@ model Consultation {
   zoomLink  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  passwordHash  String?
+  avatar        String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  profile       UserProfile?
+  savedVideos   SavedVideo[]
+  watchHistory  WatchHistory[]
+
+  @@index([email])
+}
+
+model UserProfile {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  bio           String?
+  phone         String?
+  location      String?
+  preferences   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SavedVideo {
+  id        String   @id @default(cuid())
+  userId    String
+  videoId   String
+  savedAt   DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, videoId])
+  @@index([userId])
+  @@index([videoId])
+}
+
+model WatchHistory {
+  id                String   @id @default(cuid())
+  userId            String
+  videoId           String
+  watchedAt         DateTime @default(now())
+  durationWatched   Int      @default(0)
+
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video             Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([videoId])
 }

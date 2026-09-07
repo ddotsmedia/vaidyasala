@@ -1,0 +1,301 @@
+═══════════════════════════════════════════════════════════════════════════════
+VAIDYASALA WEBSITE - DEPLOYMENT CHECKLIST
+═══════════════════════════════════════════════════════════════════════════════
+
+PROJECT INFORMATION:
+- Domain: vaidhyasala.com
+- VPS IP: 194.164.151.202
+- App Port: 3001 (internal) → 443 (external via Nginx)
+- Status: YouTube Video Showcase + Online Consultation Platform
+
+═══════════════════════════════════════════════════════════════════════════════
+PHASE 1: AUTOMATED DEPLOYMENT (./deploy.sh)
+═══════════════════════════════════════════════════════════════════════════════
+
+What the script does automatically:
+
+[  ] STEP 1: Verify project structure exists
+      Expected: Docker files found at /opt/vaidhyasala/apps/website/
+
+[  ] STEP 2: Check port availability (3001, 5434, 6382)
+      Expected: All ports available or already used by vaidhyasala
+
+[  ] STEP 3: Check volume names for conflicts
+      Expected: vaidhyasala_web_pgdata and vaidhyasala_web_redisdata
+
+[  ] STEP 4: Stop existing Vaidyasala containers (if any)
+      Expected: No error if containers don't exist
+
+[  ] STEP 5: Create .env.local file
+      Expected: File created at /opt/vaidhyasala/apps/website/.env.local
+      Contains: YouTube API key, Stripe keys, Admin password
+
+[  ] STEP 6: Build Docker image
+      Expected: vaidhyasala-web:latest image created
+      Time: 3-5 minutes
+      Success: "Docker image built successfully"
+
+[  ] STEP 7: Start containers (PostgreSQL, Redis, Next.js)
+      Expected: All 3 containers start
+      Time: 30 seconds - 1 minute
+
+[  ] STEP 8: Verify container health
+      Expected: docker-compose ps shows all "Up (healthy)"
+      - vaidhyasala-postgres: Up (healthy)
+      - vaidhyasala-redis: Up (healthy)
+      - vaidhyasala-web: Up (healthy)
+
+[  ] STEP 9: Run database migrations
+      Expected: Schema created (Video, Article, Consultation tables)
+      Time: 10-20 seconds
+
+[  ] STEP 10: Test API endpoints
+      Expected: Health check returns status "ok"
+      Command: curl -H "X-Admin-Password: Admin@Vaidyasala2024" http://127.0.0.1:3001/api/health
+
+[  ] STEP 11: Verify database tables
+      Expected: Multiple tables created (Video, Article, User, etc.)
+
+[  ] STEP 12: Check Nginx status
+      Expected: Config file location identified
+      Next: Copy nginx.conf to /etc/nginx/sites-available/vaidhyasala.conf
+
+[  ] STEP 13: Check SSL certificate status
+      Expected: Not yet installed (that's next)
+      Next: Run certbot to create certificate
+
+[  ] STEP 14: Initial YouTube video sync
+      Expected: 560 videos fetched and stored in database
+      Time: 2-3 minutes
+      Database: SELECT COUNT(*) FROM "Video"; → 560
+
+[  ] STEP 15: Setup daily cron job
+      Expected: Cron job added to midnight UTC
+      Verify: crontab -l should show the sync command
+
+═══════════════════════════════════════════════════════════════════════════════
+PHASE 2: MANUAL NGINX SETUP (After ./deploy.sh completes)
+═══════════════════════════════════════════════════════════════════════════════
+
+[  ] Step A: Copy Nginx configuration
+      Command: sudo cp nginx.conf /etc/nginx/sites-available/vaidhyasala.conf
+      Expected: File created at /etc/nginx/sites-available/vaidhyasala.conf
+
+[  ] Step B: Enable the site in Nginx
+      Command: sudo ln -s /etc/nginx/sites-available/vaidhyasala.conf /etc/nginx/sites-enabled/
+      Expected: Symlink created (no error if already exists)
+
+[  ] Step C: Test Nginx configuration
+      Command: sudo nginx -t
+      Expected: "test is successful"
+
+[  ] Step D: Reload Nginx
+      Command: sudo systemctl reload nginx
+      Expected: No errors, Nginx reloaded
+
+═══════════════════════════════════════════════════════════════════════════════
+PHASE 3: SSL CERTIFICATE SETUP (Let's Encrypt)
+═══════════════════════════════════════════════════════════════════════════════
+
+[  ] Step A: Create SSL certificate
+      Command: sudo certbot certonly --nginx -d vaidhyasala.com
+      Expected: Certificate created at /etc/letsencrypt/live/vaidhyasala.com/
+
+[  ] Step B: Verify certificate installation
+      Command: sudo certbot certificates
+      Expected: Certificate listed with expiry date
+
+[  ] Step C: Verify HTTPS is working
+      Command: curl -I https://vaidhyasala.com
+      Expected: HTTP/1.1 200 OK
+
+[  ] Step D: Verify auto-renewal
+      Expected: Certbot setup automatic renewal (runs daily)
+
+═══════════════════════════════════════════════════════════════════════════════
+PHASE 4: VERIFICATION & TESTING
+═══════════════════════════════════════════════════════════════════════════════
+
+CONTAINER STATUS:
+[  ] All 3 containers running
+      Command: cd /opt/vaidhyasala/apps/website && docker-compose ps
+      Expected: All show "Up" status
+
+DATABASE:
+[  ] Database contains 560 videos
+      Command: docker-compose exec -T postgres psql -U vaidyasala -d vaidhyasala -c "SELECT COUNT(*) FROM \"Video\";"
+      Expected: 560
+
+API HEALTH:
+[  ] API responds to health check
+      Command: curl -H "X-Admin-Password: Admin@Vaidyasala2024" http://127.0.0.1:3001/api/health
+      Expected: { "status": "ok", "database": "connected" }
+
+WEB ACCESS:
+[  ] Website accessible via HTTP (internal)
+      Command: curl -I http://127.0.0.1:3001
+      Expected: HTTP/1.1 200 OK
+
+[  ] Website accessible via HTTPS (external)
+      Visit: https://vaidhyasala.com
+      Expected: Homepage loads with video grid (560+ videos)
+
+[  ] SSL certificate is valid
+      Expected: Green padlock in browser, no warnings
+
+CRON JOB:
+[  ] Daily video sync configured
+      Command: crontab -l
+      Expected: Entry like "0 0 * * * curl -s -H 'X-Admin-Password: Admin@Vaidyasala2024' https://vaidhyasala.com/api/videos/sync"
+
+LOGS:
+[  ] No errors in application logs
+      Command: docker-compose logs web | grep -i error
+      Expected: No critical errors
+
+[  ] No errors in Nginx logs
+      Command: sudo tail -20 /var/log/nginx/error.log
+      Expected: No errors related to vaidhyasala
+
+═══════════════════════════════════════════════════════════════════════════════
+PHASE 5: SAFETY VERIFICATION (Existing Projects)
+═══════════════════════════════════════════════════════════════════════════════
+
+EXISTING PROJECTS UNCHANGED:
+[  ] No disruption to other 18+ projects
+      Command: docker ps | wc -l
+      Expected: Should include your vaidhyasala containers + others
+
+[  ] Vaidyasala volumes isolated
+      Command: docker volume ls | grep vaidhyasala
+      Expected: Only vaidhyasala_web_pgdata and vaidhyasala_web_redisdata
+
+[  ] Vaidyasala ports isolated
+      Command: docker ps | grep vaidhyasala
+      Expected: Only vaidhyasala containers, no conflicts
+
+[  ] Other project ports untouched
+      Expected: Existing services still running on their original ports
+
+═══════════════════════════════════════════════════════════════════════════════
+PHASE 6: FEATURES VERIFICATION
+═══════════════════════════════════════════════════════════════════════════════
+
+CORE FEATURES:
+[  ] Homepage displays video grid
+      Expected: 560+ YouTube video links from Vaidyasala channel
+
+[  ] Search functionality works
+      Expected: Can search videos by title/category
+
+[  ] Video filtering by category works
+      Expected: Can filter by Health, Yoga, etc.
+
+[  ] Video links point to YouTube
+      Expected: Click video → Opens YouTube video in new tab
+
+[  ] SEO metadata present
+      Expected: Page has proper meta tags, Open Graph data
+
+[  ] Mobile responsive
+      Expected: Website works on mobile, tablet, desktop
+
+OPTIONAL FEATURES:
+[  ] Blog articles display
+      Expected: Health articles show on blog page
+
+[  ] Online consultation booking
+      Expected: Consultation booking form works
+
+[  ] Stripe payment integration
+      Expected: Payment processing for bookings (test mode active)
+
+═══════════════════════════════════════════════════════════════════════════════
+MONITORING & MAINTENANCE
+═══════════════════════════════════════════════════════════════════════════════
+
+DAILY MONITORING:
+[  ] Check container health daily
+      Command: docker-compose ps
+
+[  ] Monitor disk space
+      Command: docker system df
+
+[  ] Check for any errors in logs
+      Command: docker-compose logs | grep -i error
+
+WEEKLY MONITORING:
+[  ] Verify YouTube sync ran
+      Check: docker-compose logs web | grep "sync"
+
+[  ] Monitor database size
+      Command: docker-compose exec -T postgres du -h /var/lib/postgresql/data
+
+MONTHLY MAINTENANCE:
+[  ] Update Docker images
+      Command: docker pull node:22-alpine && docker pull postgres:16-alpine && docker pull redis:7-alpine
+
+[  ] Review SSL certificate expiry
+      Command: sudo certbot certificates
+
+[  ] Backup database (optional)
+      See DEPLOYMENT_STEPS.md for backup strategy
+
+═══════════════════════════════════════════════════════════════════════════════
+TROUBLESHOOTING REFERENCE
+═══════════════════════════════════════════════════════════════════════════════
+
+If any step fails:
+
+PORT CONFLICTS:
+→ lsof -i :3001 (check what's using the port)
+→ Verify it's from vaidhyasala or stop the conflicting service
+
+DATABASE ISSUES:
+→ docker-compose logs postgres
+→ docker-compose exec -T postgres pg_isready -U vaidyasala
+
+CONTAINER WON'T START:
+→ docker-compose logs
+→ Check available disk space: df -h
+
+NGINX ISSUES:
+→ sudo nginx -t (test config)
+→ sudo systemctl status nginx
+→ sudo tail -f /var/log/nginx/error.log
+
+SSL CERTIFICATE ISSUES:
+→ sudo certbot certificates
+→ sudo certbot renew --dry-run
+
+═══════════════════════════════════════════════════════════════════════════════
+COMPLETION INDICATORS
+═══════════════════════════════════════════════════════════════════════════════
+
+✓ All phases complete when:
+
+1. ✓ deploy.sh runs without errors
+2. ✓ All 3 containers show "Up (healthy)"
+3. ✓ Database contains 560 videos
+4. ✓ https://vaidhyasala.com is accessible
+5. ✓ SSL certificate is valid (green padlock)
+6. ✓ Video grid displays on homepage
+7. ✓ API health check passes
+8. ✓ Cron job configured for daily sync
+9. ✓ No errors in logs
+10. ✓ Other 18+ projects still running
+
+═══════════════════════════════════════════════════════════════════════════════
+DEPLOYMENT TIME ESTIMATES
+═══════════════════════════════════════════════════════════════════════════════
+
+./deploy.sh:               ~10-15 minutes (includes 3-5 min Docker build + 2-3 min video sync)
+Nginx setup:               ~2 minutes
+SSL certificate:           ~2 minutes
+Total time to live:        ~15-20 minutes
+
+═══════════════════════════════════════════════════════════════════════════════
+
+Ready to deploy? Start with: ./deploy.sh
+
+═══════════════════════════════════════════════════════════════════════════════
