@@ -6,6 +6,7 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Install dependencies
+RUN apk add --no-cache openssl
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN npm install -g pnpm && pnpm install --frozen-lockfile
 
@@ -23,9 +24,9 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Install runtime dependencies only
-RUN npm install -g pnpm && apk add --no-cache curl
+RUN npm install -g pnpm && apk add --no-cache curl openssl
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN pnpm install --prod --frozen-lockfile
+RUN pnpm install --prod --frozen-lockfile --ignore-scripts
 
 # Copy built application from builder
 COPY --from=builder /app/apps/website/.next /app/apps/website/.next
