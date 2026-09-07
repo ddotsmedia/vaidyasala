@@ -65,7 +65,7 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - ./apps/website/public:/app/public
+      - ./public:/app/public
     networks:
       - vaidhyasala-net
     restart: unless-stopped
