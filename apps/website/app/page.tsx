@@ -1,6 +1,8 @@
 import { prisma } from '@/lib/db';
 import VideoCard from '@/components/VideoCard';
 
+export const dynamic = 'force-dynamic';
+
 export default async function HomePage() {
   const videos = await prisma.video.findMany({
     take: 100,
