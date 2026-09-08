@@ -25,6 +25,7 @@ export default function VideoCard({ video }: { video: Video }) {
             href={`https://youtube.com/watch?v=${video.youtubeId}`}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
             className="mt-3 block bg-red-600 text-white px-4 py-2 rounded text-center hover:bg-red-700 transition"
           >
             Watch on YouTube
