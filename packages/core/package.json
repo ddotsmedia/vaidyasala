@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",
-    "zod": "^3.23.8",
+    "zod": "^4.6.6",
     "meilisearch": "^0.45.0"
   },
   "devDependencies": {
@@ -29,7 +29,7 @@
     "@vaidyasala/config": "workspace:*",
     "eslint": "^9.13.0",
     "typescript": "^5.6.3",
-    "vitest": "^2.1.4"
+    "vitest": "^4.1.11"
   },
   "sideEffects": false
 }

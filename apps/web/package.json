@@ -17,20 +17,20 @@
   "dependencies": {
     "@deepgram/sdk": "^5.9.0",
     "@hookform/resolvers": "^5.9.1",
-    "@sentry/nextjs": "^10.69.0",
+    "@sentry/nextjs": "^10.75.2",
     "@types/mixpanel-browser": "^2.66.0",
     "@vaidyasala/core": "workspace:*",
     "@vaidyasala/db": "workspace:*",
     "@vaidyasala/ui": "workspace:*",
-    "better-auth": "~1.2.7",
+    "better-auth": "~1.7.7",
     "bullmq": "^5.28.1",
     "feed": "^6.0.0",
     "ioredis": "^5.4.1",
     "lucide-react": "^0.454.0",
     "mixpanel-browser": "^2.81.0",
     "motion": "^11.11.17",
-    "next": "^16.0.0",
-    "next-mdx-remote": "^5.0.0",
+    "next": "^16.4.5",
+    "next-mdx-remote": "^6.0.0",
     "next-seo": "^7.3.0",
     "plausible-tracker": "^0.3.9",
     "plyr": "^3.8.4",
@@ -41,7 +41,7 @@
     "recharts": "^3.10.1",
     "schema-dts": "^1.1.2",
     "server-only": "^0.0.1",
-    "zod": "^3.23.8"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@playwright/test": "^1.48.2",
@@ -55,6 +55,6 @@
     "tailwindcss": "^4.0.0",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",
-    "vitest": "^2.1.4"
+    "vitest": "^4.1.11"
   }
 }
